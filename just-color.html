@@ -61,7 +61,7 @@
 
     /* ── パレット ── */
     .palettes {
-      display: flex; gap: 12px; justify-content: center;
+      display: flex; gap: 14px; justify-content: center;
       width: 100%; max-width: 360px; margin-bottom: 14px;
     }
     .palette { display: flex; flex-direction: column; align-items: center; gap: 5px; }
@@ -72,20 +72,42 @@
 
     .pal-grid {
       display: grid;
-      grid-template-columns: repeat(5, 18px);
-      gap: 2px;
+      grid-template-columns: repeat(4, 22px);
+      gap: 3px;
+      background: #fff;
+      border-radius: 8px;
+      padding: 5px;
     }
     .pal-cell {
-      width: 18px; height: 18px; border-radius: 2px;
+      width: 22px; height: 22px; border-radius: 3px;
       cursor: pointer; position: relative;
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1);
+      border: 1px solid rgba(0,0,0,0.10);
       transition: transform 0.08s;
     }
-    .pal-cell:hover  { transform: scale(1.2); z-index: 1; }
+    .pal-cell:hover  { transform: scale(1.18); z-index: 1; }
     .pal-cell.selected {
       transform: scale(1.12); z-index: 2;
-      box-shadow: 0 0 0 2px #fff, inset 0 0 0 1px rgba(255,255,255,0.1);
+      box-shadow: 0 0 0 2px #333;
+      border-color: transparent;
     }
+    .pal-cell.correct {
+      transform: scale(1.12); z-index: 3;
+      box-shadow: 0 0 0 2.5px #ff69b4;
+      border-color: transparent;
+    }
+    .pal-cell.selected.correct {
+      box-shadow: 0 0 0 1.5px #333, 0 0 0 3.5px #ff69b4;
+    }
+
+    /* ── パーセント表示 ── */
+    .pal-pct {
+      font-size: 0.68rem;
+      color: #888;
+      letter-spacing: 0.04em;
+      min-height: 1.2em;
+      text-align: center;
+    }
+    .pal-pct .ans { color: #ff80c0; }
 
     /* ── ボタン ── */
     #actionBtn {
@@ -152,14 +174,17 @@
   <div class="palette">
     <div class="pal-label r">R</div>
     <div class="pal-grid" id="palR"></div>
+    <div class="pal-pct" id="pctR">--</div>
   </div>
   <div class="palette">
     <div class="pal-label g">G</div>
     <div class="pal-grid" id="palG"></div>
+    <div class="pal-pct" id="pctG">--</div>
   </div>
   <div class="palette">
     <div class="pal-label b">B</div>
     <div class="pal-grid" id="palB"></div>
+    <div class="pal-pct" id="pctB">--</div>
   </div>
 </div>
 
@@ -184,9 +209,11 @@
   const CX     = SZ / 2;
   const CY     = SZ / 2;
   const RADIUS = 50;
+  const N      = 16; // 4×4
 
-  // 25段階のパレット値（0〜255）
-  function palVal(idx) { return Math.round(idx * 255 / 24); }
+  // 16段階のパレット値（0〜255）
+  function palVal(idx) { return Math.round(idx * 255 / 15); }
+  function pct(v)      { return Math.round(v / 255 * 100); }
 
   const SHAPES = [
     { id: 'circle',   type: 'circle' },
@@ -209,9 +236,14 @@
   const sExact    = document.getElementById('sExact');
   const sClose    = document.getElementById('sClose');
   const sMiss     = document.getElementById('sMiss');
+  const pctR      = document.getElementById('pctR');
+  const pctG      = document.getElementById('pctG');
+  const pctB      = document.getElementById('pctB');
 
   let state = 'playing';
-  let shape, targetR, targetG, targetB;
+  let shape;
+  let targetR, targetG, targetB;
+  let targetRIdx, targetGIdx, targetBIdx;
   let selR = null, selG = null, selB = null;
   let score = { exact: 0, close: 0, miss: 0 };
 
@@ -279,10 +311,11 @@
   function buildPalette(containerId, channel) {
     const container = document.getElementById(containerId);
     container.innerHTML = '';
-    for (let i = 0; i < 25; i++) {
+    for (let i = 0; i < N; i++) {
       const val  = palVal(i);
       const cell = document.createElement('div');
-      cell.className = 'pal-cell';
+      cell.className     = 'pal-cell';
+      cell.dataset.idx   = i;
       const rv = channel === 'r' ? val : 0;
       const gv = channel === 'g' ? val : 0;
       const bv = channel === 'b' ? val : 0;
@@ -301,6 +334,7 @@
     if (channel === 'b') selB = val;
     updatePlayerCanvas();
     updateButton();
+    updatePct();
   }
 
   function updatePlayerCanvas() {
@@ -317,20 +351,50 @@
     actionBtn.textContent = ready ? '判定する' : 'R・G・B をそれぞれ選んでください';
   }
 
+  function updatePct() {
+    pctR.textContent = selR !== null ? `${pct(selR)}%` : '--';
+    pctG.textContent = selG !== null ? `${pct(selG)}%` : '--';
+    pctB.textContent = selB !== null ? `${pct(selB)}%` : '--';
+  }
+
+  function updatePctAfterJudge() {
+    const tRP = pct(targetR), tGP = pct(targetG), tBP = pct(targetB);
+    const sRP = selR !== null ? pct(selR) : '--';
+    const sGP = selG !== null ? pct(selG) : '--';
+    const sBP = selB !== null ? pct(selB) : '--';
+    pctR.innerHTML = `${sRP}% <span class="ans">→ ${tRP}%</span>`;
+    pctG.innerHTML = `${sGP}% <span class="ans">→ ${tGP}%</span>`;
+    pctB.innerHTML = `${sBP}% <span class="ans">→ ${tBP}%</span>`;
+  }
+
+  function showCorrectCells() {
+    document.querySelector(`#palR [data-idx="${targetRIdx}"]`).classList.add('correct');
+    document.querySelector(`#palG [data-idx="${targetGIdx}"]`).classList.add('correct');
+    document.querySelector(`#palB [data-idx="${targetBIdx}"]`).classList.add('correct');
+  }
+
   // ── ゲームロジック ──
   function newRound() {
-    shape   = SHAPES[Math.floor(Math.random() * SHAPES.length)];
-    targetR = palVal(Math.floor(Math.random() * 25));
-    targetG = palVal(Math.floor(Math.random() * 25));
-    targetB = palVal(Math.floor(Math.random() * 25));
+    shape      = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+    targetRIdx = Math.floor(Math.random() * N);
+    targetGIdx = Math.floor(Math.random() * N);
+    targetBIdx = Math.floor(Math.random() * N);
+    targetR    = palVal(targetRIdx);
+    targetG    = palVal(targetGIdx);
+    targetB    = palVal(targetBIdx);
     selR = null; selG = null; selB = null;
     state = 'playing';
 
     drawShape(tCtx, `rgb(${targetR},${targetG},${targetB})`);
     drawEmpty(pCtx);
-    document.querySelectorAll('.pal-cell').forEach(c => c.classList.remove('selected'));
+    document.querySelectorAll('.pal-cell').forEach(c => {
+      c.classList.remove('selected', 'correct');
+    });
     resultDiv.innerHTML = '';
     detailDiv.innerHTML = '';
+    pctR.textContent = '--';
+    pctG.textContent = '--';
+    pctB.textContent = '--';
     updateButton();
   }
 
@@ -360,6 +424,9 @@
     void resultDiv.offsetWidth;
     resultDiv.style.animation = '';
     detailDiv.innerHTML = msg;
+
+    showCorrectCells();
+    updatePctAfterJudge();
 
     state = 'result-ready';
     actionBtn.textContent = '次へ';
