@@ -120,8 +120,9 @@
     .game-card:hover {
       transform: translateY(-6px) scale(1.02);
     }
-    .card-size:hover  { border-color: rgba(120,100,240,0.5); box-shadow: 0 12px 40px rgba(100,90,240,0.3); }
-    .card-angle:hover { border-color: rgba(0,200,140,0.5);   box-shadow: 0 12px 40px rgba(0,200,140,0.3); }
+    .card-size:hover   { border-color: rgba(120,100,240,0.5); box-shadow: 0 12px 40px rgba(100,90,240,0.3); }
+    .card-angle:hover  { border-color: rgba(0,200,140,0.5);   box-shadow: 0 12px 40px rgba(0,200,140,0.3); }
+    .card-timing:hover { border-color: rgba(220,155,45,0.5);  box-shadow: 0 12px 40px rgba(200,130,20,0.3); }
 
     .card-soon {
       opacity: 0.25;
@@ -150,7 +151,8 @@
       letter-spacing: 0.06em;
     }
 
-    .card-size  .card-name { color: #a89fff; }
+    .card-size   .card-name { color: #a89fff; }
+    .card-timing .card-name { color: #e0aa40; }
     .card-angle .card-name { color: #50e8b0; }
     .card-soon  .card-name { color: #445; }
 
@@ -207,14 +209,15 @@
       <div class="card-desc">図形の角度を<br>ピタッと合わせろ</div>
     </a>
 
-    <!-- Coming Soon ×2 -->
-    <div class="game-card card-soon">
-      <div style="font-size:2.2rem;margin-bottom:14px;opacity:0.4">？</div>
+    <!-- JUST TIMING -->
+    <a href="just-timing.html" class="game-card card-timing">
+      <canvas class="icon" id="iconTiming" width="72" height="72"></canvas>
       <div class="card-eyebrow">JUST</div>
-      <div class="card-name">???</div>
-      <div class="card-desc">coming soon</div>
-    </div>
+      <div class="card-name">TIMING</div>
+      <div class="card-desc">1回転のタイミングを<br>ピタッと合わせろ</div>
+    </a>
 
+    <!-- Coming Soon -->
     <div class="game-card card-soon">
       <div style="font-size:2.2rem;margin-bottom:14px;opacity:0.4">？</div>
       <div class="card-eyebrow">JUST</div>
@@ -355,6 +358,48 @@
     ctx.lineWidth   = 1.5;
     ctx.fill();
     ctx.stroke();
+  })();
+
+  // ──────────────────────────────────────────────
+  //  TIMING カードアイコン（三角形＋弧の軌跡）
+  // ──────────────────────────────────────────────
+  (function() {
+    const c   = document.getElementById('iconTiming');
+    const ctx = c.getContext('2d');
+    const cx = 36, cy = 36, r = 26;
+
+    // 軌道の弧（薄い破線）
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(220,155,45,0.18)';
+    ctx.lineWidth   = 1;
+    ctx.setLineDash([3, 6]);
+    ctx.stroke();
+    ctx.restore();
+
+    // 図形（0° = 静止位置、薄い）
+    function triangle(ctx, angle, alpha) {
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(angle);
+      ctx.beginPath();
+      for (let i = 0; i <= 3; i++) {
+        const a = -Math.PI / 2 + (Math.PI * 2 / 3) * i;
+        if (i === 0) ctx.moveTo(r * Math.cos(a), r * Math.sin(a));
+        else          ctx.lineTo(r * Math.cos(a), r * Math.sin(a));
+      }
+      ctx.closePath();
+      ctx.fillStyle   = `rgba(220,155,45,${alpha * 0.5})`;
+      ctx.strokeStyle = `rgba(220,155,45,${alpha})`;
+      ctx.lineWidth   = 1.5;
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    triangle(ctx, 0,    0.3);   // 出発位置（薄い）
+    triangle(ctx, 1.2,  1.0);   // 途中位置（濃い）
   })();
 </script>
 </body>

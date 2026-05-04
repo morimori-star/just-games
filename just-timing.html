@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JUST TIMING</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #0f0800, #1a1000, #0a0500);
+      min-height: 100vh;
+      color: #eee;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 10px 24px;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .header {
+      width: 100%;
+      max-width: 360px;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    h1 {
+      font-size: 1.25rem;
+      letter-spacing: 0.03em;
+      background: linear-gradient(90deg, #ffe080, #ff9820);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .legend {
+      font-size: 0.7rem;
+      color: #888;
+      white-space: nowrap;
+    }
+
+    /* ── キャンバス ── */
+    .canvas-wrap {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 18px;
+      padding: 18px;
+      margin-bottom: 10px;
+      width: 100%;
+      max-width: 360px;
+      display: flex;
+      justify-content: center;
+    }
+    canvas { display: block; border-radius: 8px; }
+
+    /* ── ステータス ── */
+    #status {
+      font-size: 0.8rem;
+      color: #888;
+      min-height: 20px;
+      text-align: center;
+      margin-bottom: 12px;
+      letter-spacing: 0.04em;
+      width: 100%;
+      max-width: 360px;
+    }
+    #status.alert {
+      color: #ffb030;
+      font-weight: 700;
+    }
+
+    /* ── ボタン ── */
+    #actionBtn {
+      font-size: 1.2rem;
+      font-weight: 700;
+      padding: 15px 0;
+      width: 100%;
+      max-width: 360px;
+      border: none;
+      border-radius: 999px;
+      cursor: pointer;
+      background: linear-gradient(135deg, #a06010, #d08820);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(190,130,20,0.45);
+      transition: transform 0.1s, background 0.2s, box-shadow 0.2s;
+      outline: none;
+      margin-bottom: 14px;
+    }
+    #actionBtn:active { transform: scale(0.97); }
+    #actionBtn.now {
+      background: linear-gradient(135deg, #f7971e, #f5576c);
+      box-shadow: 0 4px 20px rgba(245,87,108,0.5);
+    }
+    #actionBtn:disabled { opacity: 0.35; cursor: default; transform: none; }
+
+    /* ── 結果 + スコア ── */
+    .bottom-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      max-width: 360px;
+      gap: 8px;
+    }
+    .result-area {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    #result {
+      font-size: 2.6rem;
+      line-height: 1;
+      flex-shrink: 0;
+      animation: pop 0.3s ease;
+    }
+    @keyframes pop {
+      0%   { transform: scale(0.4); opacity: 0; }
+      65%  { transform: scale(1.2); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    #resultDetail {
+      font-size: 0.92rem;
+      color: #bbb;
+      min-height: 16px;
+      line-height: 1.35;
+      white-space: nowrap;
+    }
+    .scoreboard {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .score-cell {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      padding: 7px 10px;
+      text-align: center;
+      min-width: 48px;
+    }
+    .score-cell .lbl { font-size: 0.9rem; }
+    .score-cell .val { font-size: 1.3rem; font-weight: 700; }
+
+    .delta { color: #e53935; font-weight: 900; font-size: 1.35em; line-height: 1; vertical-align: 2px; }
+    .legend .delta { vertical-align: 0px; }
+    .score-cell .delta { vertical-align: 0; position: relative; top: 1px; }
+
+    .home-btn {
+      font-size: 0.72rem;
+      color: #666;
+      text-decoration: none;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 6px;
+      padding: 4px 9px;
+      transition: color 0.2s, background 0.2s;
+      white-space: nowrap;
+      align-self: flex-start;
+      margin-bottom: 8px;
+    }
+    .home-btn:hover { color: #ccc; background: rgba(255,255,255,0.12); }
+
+    .hint { font-size: 0.65rem; color: #444; margin-top: 12px; }
+  </style>
+</head>
+<body>
+
+<a href="index.html" class="home-btn">← TOP</a>
+
+<div class="header">
+  <h1>JUST TIMING</h1>
+  <div class="legend">⭕±5° &nbsp;<span class="delta">▲</span>±15° &nbsp;❌その他</div>
+</div>
+
+<div class="canvas-wrap">
+  <canvas id="gameCanvas" width="220" height="220"></canvas>
+</div>
+
+<div id="status">まず、回転速度を確認！</div>
+
+<button id="actionBtn" disabled>確認中…</button>
+
+<div class="bottom-row">
+  <div class="result-area">
+    <div id="result"></div>
+    <div id="resultDetail"></div>
+  </div>
+  <div class="scoreboard">
+    <div class="score-cell"><div class="lbl">⭕</div><div class="val" id="sExact">0</div></div>
+    <div class="score-cell"><div class="lbl"><span class="delta">▲</span></div><div class="val" id="sClose">0</div></div>
+    <div class="score-cell"><div class="lbl">❌</div><div class="val" id="sMiss">0</div></div>
+  </div>
+</div>
+
+<p class="hint">スペースキーでもボタンを押せます</p>
+
+<script>
+  const SZ     = 220;
+  const CX     = SZ / 2;
+  const CY     = SZ / 2;
+  const RADIUS = 72;
+
+  const SHAPES = [
+    { id: 'arrow',    name: '矢印',   type: 'arrow' },
+    { id: 'triangle', name: '三角形', type: 'poly', sides: 3 },
+    { id: 'pentagon', name: '五角形', type: 'poly', sides: 5 },
+    { id: 'heptagon', name: '七角形', type: 'poly', sides: 7 },
+    { id: 'star5',    name: '五芒星', type: 'star', pts: 5, inner: 0.38 },
+    { id: 'flower5',  name: '花',     type: 'flower', petals: 5 },
+  ];
+
+  // 速度レンジ（度/フレーム）
+  const MIN_SPEED     = 0.45;   // ~13秒/周
+  const MAX_SPEED     = 1.60;   // ~3.7秒/周
+
+  // 図形が消えるまでの角度レンジ
+  const MIN_DISAPPEAR = 50;
+  const MAX_DISAPPEAR = 140;
+
+  const SHAPE_COLOR = { fill: 'rgba(220,155,45,0.88)', stroke: '#d99a1a' };
+  const FAINT_COLOR = { fill: 'rgba(220,155,45,0.18)', stroke: 'rgba(217,154,26,0.35)' };
+
+  // ── DOM ──
+  const canvas    = document.getElementById('gameCanvas');
+  const ctx       = canvas.getContext('2d');
+  const actionBtn = document.getElementById('actionBtn');
+  const statusDiv = document.getElementById('status');
+  const resultDiv = document.getElementById('result');
+  const detailDiv = document.getElementById('resultDetail');
+  const sExact    = document.getElementById('sExact');
+  const sClose    = document.getElementById('sClose');
+  const sMiss     = document.getElementById('sMiss');
+
+  // ── 状態 ──
+  // 'demo' | 'idle' | 'rotating' | 'result-ready'
+  let state = 'demo';
+  let shape, rotSpeed, demoAngle, gameAngle, disappearAngle, rafId;
+  let score = { exact: 0, close: 0, miss: 0 };
+
+  // ──────────────────────────────────────────────
+  //  パス生成
+  // ──────────────────────────────────────────────
+  function buildPath(ctx, s, r) {
+    ctx.beginPath();
+    if (s.type === 'poly') {
+      const a0   = (s.a0 !== undefined) ? s.a0 : -Math.PI / 2;
+      const step = (Math.PI * 2) / s.sides;
+      ctx.moveTo(r * Math.cos(a0), r * Math.sin(a0));
+      for (let i = 1; i <= s.sides; i++) {
+        ctx.lineTo(r * Math.cos(a0 + step * i), r * Math.sin(a0 + step * i));
+      }
+      ctx.closePath();
+    } else if (s.type === 'star') {
+      const rIn  = r * s.inner;
+      const step = Math.PI / s.pts;
+      const a0   = -Math.PI / 2;
+      ctx.moveTo(r * Math.cos(a0), r * Math.sin(a0));
+      for (let i = 1; i < s.pts * 2; i++) {
+        const rr = i % 2 === 0 ? r : rIn;
+        ctx.lineTo(rr * Math.cos(a0 + step * i), rr * Math.sin(a0 + step * i));
+      }
+      ctx.closePath();
+    } else if (s.type === 'arrow') {
+      const hw = r * 0.55, sw = r * 0.25, hn = r * 0.10;
+      ctx.moveTo(0, -r);
+      ctx.lineTo( hw, -hn); ctx.lineTo( sw, -hn);
+      ctx.lineTo( sw,  r);  ctx.lineTo(-sw,  r);
+      ctx.lineTo(-sw, -hn); ctx.lineTo(-hw, -hn);
+      ctx.closePath();
+    } else if (s.type === 'flower') {
+      const step        = (Math.PI * 2) / s.petals;
+      const ctrlR       = r * 0.72;
+      const ctrlSpread  = step * 0.42;
+      ctx.moveTo(0, 0);
+      for (let i = 0; i < s.petals; i++) {
+        const tipA = step * i - Math.PI / 2;
+        ctx.quadraticCurveTo(
+          ctrlR * Math.cos(tipA - ctrlSpread), ctrlR * Math.sin(tipA - ctrlSpread),
+          r * Math.cos(tipA), r * Math.sin(tipA)
+        );
+        ctx.quadraticCurveTo(
+          ctrlR * Math.cos(tipA + ctrlSpread), ctrlR * Math.sin(tipA + ctrlSpread),
+          0, 0
+        );
+      }
+      ctx.closePath();
+    }
+  }
+
+  function paintShape(ctx, s, r, angleDeg, col) {
+    ctx.save();
+    ctx.translate(CX, CY);
+    ctx.rotate(angleDeg * Math.PI / 180);
+    ctx.shadowColor = col.stroke;
+    ctx.shadowBlur  = 12;
+    ctx.fillStyle   = col.fill;
+    ctx.strokeStyle = col.stroke;
+    ctx.lineWidth   = 2;
+    buildPath(ctx, s, r);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function paintOverlay(ctx, s, r, angleDeg) {
+    ctx.save();
+    ctx.translate(CX, CY);
+    ctx.rotate(angleDeg * Math.PI / 180);
+    ctx.setLineDash([6, 4]);
+    ctx.lineWidth   = 1.8;
+    ctx.strokeStyle = 'rgba(255,200,80,0.6)';
+    ctx.shadowColor = 'rgba(255,180,50,0.3)';
+    ctx.shadowBlur  = 6;
+    buildPath(ctx, s, r);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawHiddenState() {
+    // 軌道を示す薄い円
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(CX, CY, RADIUS, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(220,155,45,0.07)';
+    ctx.lineWidth   = 1;
+    ctx.setLineDash([3, 9]);
+    ctx.stroke();
+    ctx.restore();
+    // 中心ドット
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(CX, CY, 3, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(220,155,45,0.35)';
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function clear() { ctx.clearRect(0, 0, SZ, SZ); }
+
+  // ──────────────────────────────────────────────
+  //  ゲームロジック
+  // ──────────────────────────────────────────────
+  function newRound() {
+    cancelAnimationFrame(rafId);
+    shape          = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+    rotSpeed       = MIN_SPEED + Math.random() * (MAX_SPEED - MIN_SPEED);
+    disappearAngle = MIN_DISAPPEAR + Math.random() * (MAX_DISAPPEAR - MIN_DISAPPEAR);
+    demoAngle      = 0;
+    gameAngle      = 0;
+    state          = 'demo';
+
+    statusDiv.textContent = 'まず、回転速度を確認してください';
+    statusDiv.className   = '';
+    resultDiv.innerHTML   = '';
+    detailDiv.innerHTML   = '';
+    state                 = 'pre-demo';
+    actionBtn.disabled    = false;
+    actionBtn.textContent = '回転速度を確認する';
+    actionBtn.className   = '';
+
+    clear();
+    paintShape(ctx, shape, RADIUS, 0, SHAPE_COLOR);
+  }
+
+  function animateDemo() {
+    if (state !== 'demo') return;
+
+    demoAngle += rotSpeed;
+    clear();
+    paintShape(ctx, shape, RADIUS, demoAngle, SHAPE_COLOR);
+
+    if (demoAngle >= 360) {
+      // デモ完了 → 図形を0°に戻して待機
+      clear();
+      paintShape(ctx, shape, RADIUS, 0, SHAPE_COLOR);
+      state                 = 'idle';
+      statusDiv.textContent = '速度を覚えた？　タイミングを計れ！';
+      actionBtn.disabled    = false;
+      actionBtn.textContent = 'スタート';
+      return;
+    }
+
+    rafId = requestAnimationFrame(animateDemo);
+  }
+
+  function startRotating() {
+    state                 = 'rotating';
+    gameAngle             = 0;
+    actionBtn.textContent = '今！';
+    actionBtn.className   = 'now';
+    statusDiv.textContent = '';
+    statusDiv.className   = '';
+    animateGame();
+  }
+
+  function animateGame() {
+    if (state !== 'rotating') return;
+
+    gameAngle += rotSpeed;
+    clear();
+
+    if (gameAngle < disappearAngle) {
+      paintShape(ctx, shape, RADIUS, gameAngle, SHAPE_COLOR);
+    } else {
+      drawHiddenState();
+      if (statusDiv.textContent === '') {
+        statusDiv.textContent = '1回転したら押して！';
+        statusDiv.className   = 'alert';
+      }
+    }
+
+    rafId = requestAnimationFrame(animateGame);
+  }
+
+  function judge() {
+    cancelAnimationFrame(rafId);
+    state = 'result';
+
+    const diff  = Math.abs(gameAngle - 360);
+    const deg   = Math.round(diff * 10) / 10;
+    const timing = gameAngle < 360 ? '早め' : '遅め';
+
+    let emoji, msg, key;
+    if (diff < 5) {
+      emoji = '⭕';
+      msg   = `完璧！<br>誤差 ${deg}°`;
+      key   = 'exact';
+    } else if (diff < 15) {
+      emoji = '<span class="delta">▲</span>';
+      msg   = `惜しい！${timing}<br>誤差 ${deg}°`;
+      key   = 'close';
+    } else {
+      emoji = '❌';
+      msg   = `残念… ${timing}<br>誤差 ${deg}°`;
+      key   = 'miss';
+    }
+
+    score[key]++;
+    sExact.textContent = score.exact;
+    sClose.textContent = score.close;
+    sMiss.textContent  = score.miss;
+
+    resultDiv.innerHTML = emoji;
+    resultDiv.style.animation = 'none';
+    void resultDiv.offsetWidth;
+    resultDiv.style.animation = '';
+    detailDiv.innerHTML = msg;
+    statusDiv.textContent = '';
+    statusDiv.className   = '';
+
+    // キャンバスに停止位置と目標（0°）を重ねて表示
+    clear();
+    paintShape(ctx, shape, RADIUS, gameAngle % 360, SHAPE_COLOR);
+    paintOverlay(ctx, shape, RADIUS, 0);
+
+    setTimeout(() => {
+      actionBtn.textContent = '次へ';
+      actionBtn.className   = '';
+      actionBtn.disabled    = false;
+      state = 'result-ready';
+    }, 450);
+  }
+
+  // ──────────────────────────────────────────────
+  //  イベント
+  // ──────────────────────────────────────────────
+  actionBtn.addEventListener('click', () => {
+    if      (state === 'pre-demo')     startDemo();
+    else if (state === 'idle')         startRotating();
+    else if (state === 'rotating')     judge();
+    else if (state === 'result-ready') newRound();
+  });
+
+  function startDemo() {
+    state                 = 'demo';
+    demoAngle             = 0;
+    actionBtn.disabled    = true;
+    actionBtn.textContent = '確認中…';
+    statusDiv.textContent = '回転速度を覚えてください';
+    animateDemo();
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.code === 'Space' && !e.repeat) {
+      e.preventDefault();
+      if (!actionBtn.disabled) actionBtn.click();
+    }
+  });
+
+  // ──────────────────────────────────────────────
+  //  初期化
+  // ──────────────────────────────────────────────
+  newRound();
+</script>
+</body>
+</html>
