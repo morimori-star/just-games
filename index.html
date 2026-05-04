@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JUST</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      background: #06060f;
+      min-height: 100vh;
+      color: #fff;
+      overflow-x: hidden;
+      user-select: none;
+    }
+
+    /* ── 背景キャンバス ── */
+    #bgCanvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+    }
+
+    /* ── コンテンツ ── */
+    .content {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 64px 20px 48px;
+    }
+
+    /* ── ヒーロー ── */
+    .hero {
+      text-align: center;
+      margin-bottom: 56px;
+    }
+
+    .title-just {
+      font-size: clamp(4rem, 16vw, 7rem);
+      font-weight: 900;
+      letter-spacing: 0.35em;
+      line-height: 1;
+      background: linear-gradient(135deg,
+        #ffffff 0%,
+        #c8b8ff 30%,
+        #7b9fff 60%,
+        #38d9ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      filter: drop-shadow(0 0 40px rgba(120, 160, 255, 0.35));
+      animation: glow 3s ease-in-out infinite alternate;
+    }
+
+    @keyframes glow {
+      from { filter: drop-shadow(0 0 24px rgba(120, 160, 255, 0.25)); }
+      to   { filter: drop-shadow(0 0 56px rgba(120, 200, 255, 0.55)); }
+    }
+
+    .tagline {
+      margin-top: 14px;
+      font-size: 0.78rem;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: #556;
+    }
+
+    .tagline span {
+      display: inline-block;
+      animation: fadeUp 0.8s ease both;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── ゲームグリッド ── */
+    .game-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      width: 100%;
+      max-width: 380px;
+    }
+
+    /* ── カード ── */
+    .game-card {
+      display: block;
+      text-decoration: none;
+      color: inherit;
+      background: rgba(255,255,255,0.035);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 22px;
+      padding: 22px 14px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: transform 0.22s cubic-bezier(.34,1.56,.64,1),
+                  border-color 0.22s, box-shadow 0.22s;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      animation: cardIn 0.6s ease both;
+    }
+
+    .game-card:nth-child(1) { animation-delay: 0.15s; }
+    .game-card:nth-child(2) { animation-delay: 0.25s; }
+    .game-card:nth-child(3) { animation-delay: 0.35s; }
+
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(20px) scale(0.95); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .game-card:hover {
+      transform: translateY(-6px) scale(1.02);
+    }
+    .card-size:hover  { border-color: rgba(120,100,240,0.5); box-shadow: 0 12px 40px rgba(100,90,240,0.3); }
+    .card-angle:hover { border-color: rgba(0,200,140,0.5);   box-shadow: 0 12px 40px rgba(0,200,140,0.3); }
+
+    .card-soon {
+      opacity: 0.25;
+      cursor: default;
+      pointer-events: none;
+    }
+
+    canvas.icon {
+      display: block;
+      margin: 0 auto 14px;
+      width: 72px;
+      height: 72px;
+    }
+
+    .card-eyebrow {
+      font-size: 0.58rem;
+      letter-spacing: 0.22em;
+      color: #556;
+      text-transform: uppercase;
+      margin-bottom: 3px;
+    }
+
+    .card-name {
+      font-size: 1.35rem;
+      font-weight: 900;
+      letter-spacing: 0.06em;
+    }
+
+    .card-size  .card-name { color: #a89fff; }
+    .card-angle .card-name { color: #50e8b0; }
+    .card-soon  .card-name { color: #445; }
+
+    .card-desc {
+      margin-top: 8px;
+      font-size: 0.68rem;
+      color: #778;
+      line-height: 1.5;
+    }
+
+    .card-soon .card-desc {
+      font-size: 0.62rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #334;
+    }
+
+    /* ── フッター ── */
+    .footer {
+      margin-top: 48px;
+      font-size: 0.6rem;
+      color: #334;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="bgCanvas"></canvas>
+
+<div class="content">
+
+  <div class="hero">
+    <h1 class="title-just">JUST</h1>
+    <p class="tagline"><span style="animation-delay:0.4s">感覚を研ぎ澄ませ</span></p>
+  </div>
+
+  <div class="game-grid">
+
+    <!-- JUST SIZE -->
+    <a href="size-match-game.html" class="game-card card-size">
+      <canvas class="icon" id="iconSize" width="72" height="72"></canvas>
+      <div class="card-eyebrow">JUST</div>
+      <div class="card-name">SIZE</div>
+      <div class="card-desc">図形の大きさを<br>ピタッと合わせろ</div>
+    </a>
+
+    <!-- JUST ANGLE -->
+    <a href="just-angle.html" class="game-card card-angle">
+      <canvas class="icon" id="iconAngle" width="72" height="72"></canvas>
+      <div class="card-eyebrow">JUST</div>
+      <div class="card-name">ANGLE</div>
+      <div class="card-desc">図形の角度を<br>ピタッと合わせろ</div>
+    </a>
+
+    <!-- Coming Soon ×2 -->
+    <div class="game-card card-soon">
+      <div style="font-size:2.2rem;margin-bottom:14px;opacity:0.4">？</div>
+      <div class="card-eyebrow">JUST</div>
+      <div class="card-name">???</div>
+      <div class="card-desc">coming soon</div>
+    </div>
+
+    <div class="game-card card-soon">
+      <div style="font-size:2.2rem;margin-bottom:14px;opacity:0.4">？</div>
+      <div class="card-eyebrow">JUST</div>
+      <div class="card-name">???</div>
+      <div class="card-desc">coming soon</div>
+    </div>
+
+  </div>
+
+  <p class="footer">© JUST series</p>
+</div>
+
+<script>
+  // ──────────────────────────────────────────────
+  //  背景アニメーション
+  // ──────────────────────────────────────────────
+  const bg    = document.getElementById('bgCanvas');
+  const bgCtx = bg.getContext('2d');
+
+  function resizeBg() {
+    bg.width  = window.innerWidth;
+    bg.height = window.innerHeight;
+  }
+  resizeBg();
+  window.addEventListener('resize', resizeBg);
+
+  // ゆっくり回転する幾何学図形を背景に浮かべる
+  const bgShapes = [
+    { x: 0.15, y: 0.20, r: 60, sides: 3, angle: 0, speed:  0.004, alpha: 0.04 },
+    { x: 0.82, y: 0.15, r: 45, sides: 5, angle: 1, speed: -0.003, alpha: 0.04 },
+    { x: 0.70, y: 0.55, r: 80, sides: 6, angle: 2, speed:  0.002, alpha: 0.03 },
+    { x: 0.20, y: 0.70, r: 50, sides: 4, angle: 0, speed: -0.005, alpha: 0.04 },
+    { x: 0.50, y: 0.88, r: 38, sides: 3, angle: 1, speed:  0.006, alpha: 0.03 },
+    { x: 0.90, y: 0.80, r: 55, sides: 5, angle: 3, speed: -0.004, alpha: 0.03 },
+  ];
+
+  function bgPolygon(ctx, cx, cy, r, sides, angle) {
+    const step = (Math.PI * 2) / sides;
+    ctx.beginPath();
+    for (let i = 0; i <= sides; i++) {
+      const a = angle + step * i - Math.PI / 2;
+      if (i === 0) ctx.moveTo(cx + r * Math.cos(a), cy + r * Math.sin(a));
+      else          ctx.lineTo(cx + r * Math.cos(a), cy + r * Math.sin(a));
+    }
+    ctx.closePath();
+  }
+
+  function animateBg() {
+    bgCtx.clearRect(0, 0, bg.width, bg.height);
+
+    // グラデーション背景
+    const gr = bgCtx.createRadialGradient(
+      bg.width * 0.5, bg.height * 0.4, 0,
+      bg.width * 0.5, bg.height * 0.4, bg.width * 0.8
+    );
+    gr.addColorStop(0, 'rgba(20,15,55,1)');
+    gr.addColorStop(1, 'rgba(4,4,12,1)');
+    bgCtx.fillStyle = gr;
+    bgCtx.fillRect(0, 0, bg.width, bg.height);
+
+    // 浮かぶ図形
+    bgShapes.forEach(s => {
+      s.angle += s.speed;
+      const cx = s.x * bg.width;
+      const cy = s.y * bg.height;
+      bgPolygon(bgCtx, cx, cy, s.r, s.sides, s.angle);
+      bgCtx.strokeStyle = `rgba(130,120,255,${s.alpha})`;
+      bgCtx.lineWidth   = 1.2;
+      bgCtx.stroke();
+    });
+
+    requestAnimationFrame(animateBg);
+  }
+  animateBg();
+
+  // ──────────────────────────────────────────────
+  //  SIZE カードアイコン（同心円状に広がる図形）
+  // ──────────────────────────────────────────────
+  (function drawSizeIcon() {
+    const c   = document.getElementById('iconSize');
+    const ctx = c.getContext('2d');
+    const cx = 36, cy = 36;
+    const sides = 5;
+
+    [14, 22, 30].forEach((r, i) => {
+      const alpha = 0.28 + i * 0.36;
+      ctx.beginPath();
+      for (let k = 0; k <= sides; k++) {
+        const a = -Math.PI / 2 + (Math.PI * 2 / sides) * k;
+        if (k === 0) ctx.moveTo(cx + r * Math.cos(a), cy + r * Math.sin(a));
+        else          ctx.lineTo(cx + r * Math.cos(a), cy + r * Math.sin(a));
+      }
+      ctx.closePath();
+      if (i === 2) {
+        ctx.fillStyle = `rgba(120,100,240,${alpha * 0.6})`;
+        ctx.fill();
+      }
+      ctx.strokeStyle = `rgba(160,140,255,${alpha})`;
+      ctx.lineWidth   = 1.5;
+      ctx.stroke();
+    });
+  })();
+
+  // ──────────────────────────────────────────────
+  //  ANGLE カードアイコン（矢印が少しずれて2枚重なり）
+  // ──────────────────────────────────────────────
+  (function() {
+    const c   = document.getElementById('iconAngle');
+    const ctx = c.getContext('2d');
+    const cx = 36, cy = 36;
+
+    function arrowPath(ctx, angle) {
+      const r = 26, hw = 12, sw = 5, hn = 3;
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(angle);
+      ctx.beginPath();
+      ctx.moveTo(0, -r);
+      ctx.lineTo( hw, -hn); ctx.lineTo( sw, -hn);
+      ctx.lineTo( sw,  r);  ctx.lineTo(-sw,  r);
+      ctx.lineTo(-sw, -hn); ctx.lineTo(-hw, -hn);
+      ctx.closePath();
+      ctx.restore();
+    }
+
+    // 目標（薄い）
+    arrowPath(ctx, -0.55);
+    ctx.fillStyle   = 'rgba(255,150,60,0.25)';
+    ctx.strokeStyle = 'rgba(255,150,60,0.5)';
+    ctx.lineWidth   = 1.5;
+    ctx.fill();
+    ctx.stroke();
+
+    // プレイヤー（濃い）
+    arrowPath(ctx, 0.45);
+    ctx.fillStyle   = 'rgba(50,220,140,0.7)';
+    ctx.strokeStyle = 'rgba(50,220,140,0.9)';
+    ctx.lineWidth   = 1.5;
+    ctx.fill();
+    ctx.stroke();
+  })();
+</script>
+</body>
+</html>

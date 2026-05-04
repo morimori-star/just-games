@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JUST ANGLE</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #0c1a0c, #1a3a2a, #0d2a1f);
+      min-height: 100vh;
+      color: #eee;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 10px 24px;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .header {
+      width: 100%;
+      max-width: 360px;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    h1 {
+      font-size: 1.25rem;
+      letter-spacing: 0.03em;
+      background: linear-gradient(90deg, #a8ffb0, #00e5ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .legend {
+      font-size: 0.7rem;
+      color: #888;
+      white-space: nowrap;
+    }
+
+    .speed-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .speed-label { font-size: 0.74rem; color: #888; }
+    .speed-seg {
+      display: flex;
+      background: rgba(255,255,255,0.07);
+      border-radius: 8px;
+      padding: 3px;
+      gap: 2px;
+    }
+    .spd {
+      padding: 5px 13px;
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      color: #888;
+      cursor: pointer;
+      font-size: 0.78rem;
+      font-family: inherit;
+      transition: all 0.18s;
+    }
+    .spd.active {
+      background: rgba(0,180,120,0.75);
+      color: #fff;
+      font-weight: 700;
+    }
+
+    .game-area {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+      width: 100%;
+      max-width: 360px;
+    }
+    .shape-box {
+      flex: 1;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px;
+      padding: 10px 10px 8px;
+      text-align: center;
+    }
+    .box-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #888;
+      margin-bottom: 6px;
+    }
+    .shape-box canvas { display: block; border-radius: 6px; width: 100%; }
+    .box-sub {
+      font-size: 0.7rem;
+      color: #666;
+      margin-top: 5px;
+      min-height: 16px;
+    }
+
+    #actionBtn {
+      font-size: 1.2rem;
+      font-weight: 700;
+      padding: 15px 0;
+      width: 100%;
+      max-width: 360px;
+      border: none;
+      border-radius: 999px;
+      cursor: pointer;
+      background: linear-gradient(135deg, #00b090, #00e5a0);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(0,180,140,0.45);
+      transition: transform 0.1s, box-shadow 0.1s, background 0.25s;
+      outline: none;
+      margin-bottom: 14px;
+    }
+    #actionBtn:active { transform: scale(0.97); }
+    #actionBtn.stop {
+      background: linear-gradient(135deg, #f7971e, #f5576c);
+      box-shadow: 0 4px 20px rgba(245,87,108,0.5);
+    }
+    #actionBtn:disabled { opacity: 0.4; cursor: default; transform: none; }
+
+    .bottom-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      max-width: 360px;
+      gap: 8px;
+    }
+    .result-area {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    #result {
+      font-size: 2.6rem;
+      line-height: 1;
+      animation: pop 0.3s ease;
+    }
+    @keyframes pop {
+      0%   { transform: scale(0.4); opacity: 0; }
+      65%  { transform: scale(1.2); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    #resultDetail {
+      font-size: 0.78rem;
+      color: #bbb;
+      margin-top: 2px;
+      min-height: 16px;
+    }
+    .scoreboard {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .score-cell {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      padding: 7px 10px;
+      text-align: center;
+      min-width: 48px;
+    }
+    .score-cell .lbl { font-size: 0.9rem; }
+    .score-cell .val { font-size: 1.3rem; font-weight: 700; }
+
+    .delta { color: #e53935; font-weight: 900; font-size: 1.35em; line-height: 1; vertical-align: 2px; }
+    .legend .delta { vertical-align: 0px; }
+    .score-cell .delta { vertical-align: 0; position: relative; top: -2px; }
+
+    .hint { font-size: 0.65rem; color: #444; margin-top: 12px; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>JUST ANGLE</h1>
+  <div class="legend">⭕±5° &nbsp;<span class="delta">▲</span>±15° &nbsp;❌その他</div>
+</div>
+
+<div class="speed-wrap">
+  <span class="speed-label">速度:</span>
+  <div class="speed-seg">
+    <button class="spd" data-speed="slow">ゆっくり</button>
+    <button class="spd active" data-speed="normal">普通</button>
+    <button class="spd" data-speed="fast">速い</button>
+  </div>
+</div>
+
+<div class="game-area">
+  <div class="shape-box">
+    <div class="box-label">目標の角度</div>
+    <canvas id="targetCanvas" width="155" height="155"></canvas>
+    <div class="box-sub" id="shapeMeta"></div>
+  </div>
+  <div class="shape-box">
+    <div class="box-label">あなたの角度</div>
+    <canvas id="rotCanvas" width="155" height="155"></canvas>
+    <div class="box-sub" id="lapInfo"></div>
+  </div>
+</div>
+
+<button id="actionBtn">スタート</button>
+
+<div class="bottom-row">
+  <div class="result-area">
+    <div id="result"></div>
+    <div id="resultDetail"></div>
+  </div>
+  <div class="scoreboard">
+    <div class="score-cell"><div class="lbl">⭕</div><div class="val" id="sExact">0</div></div>
+    <div class="score-cell"><div class="lbl"><span class="delta">▲</span></div><div class="val" id="sClose">0</div></div>
+    <div class="score-cell"><div class="lbl">❌</div><div class="val" id="sMiss">0</div></div>
+  </div>
+</div>
+
+<p class="hint">スペースキーでもボタンを押せます</p>
+
+<script>
+  const SZ     = 155;
+  const CX     = SZ / 2;
+  const CY     = SZ / 2;
+  const RADIUS = 56;
+
+  // 回転の周期（度）: その形が同じ見た目に戻る最小角度
+  const SHAPES = [
+    { id: 'arrow',    name: '矢印',   type: 'arrow',  period: 360 },
+    { id: 'triangle', name: '三角形', type: 'poly', sides: 3,  period: 120 },
+    { id: 'square',   name: '四角形', type: 'poly', sides: 4, a0: -Math.PI/4, period: 90 },
+    { id: 'diamond',  name: 'ひし形', type: 'poly', sides: 4, a0: -Math.PI/2, period: 90 },
+    { id: 'pentagon', name: '五角形', type: 'poly', sides: 5,  period: 72 },
+    { id: 'heptagon', name: '七角形', type: 'poly', sides: 7,  period: Math.round(360/7) },
+    { id: 'star4',    name: '四芒星', type: 'star', pts: 4, inner: 0.38, period: 90 },
+    { id: 'star5',    name: '五芒星', type: 'star', pts: 5, inner: 0.38, period: 72 },
+    { id: 'cross',    name: '十字',   type: 'cross', period: 90 },
+    { id: 'flower5',  name: '花（5弁）', type: 'flower', petals: 5, period: 72 },
+    { id: 'flower6',  name: '花（6弁）', type: 'flower', petals: 6, period: 60 },
+  ];
+
+  // 速度レンジ（度/フレーム）
+  const SPEED_RANGE = {
+    slow:   [0.30, 0.30],  // 0.30〜0.60
+    normal: [0.80, 0.70],  // 0.80〜1.50
+    fast:   [2.00, 1.50],  // 2.00〜3.50
+  };
+
+  const TARGET_COLOR = { fill: 'rgba(255,160,75,0.82)', stroke: '#ff8c42' };
+  const ROT_COLOR    = { fill: 'rgba(60,220,140,0.82)', stroke: '#00e090' };
+
+  // ── DOM ──
+  const tCanvas   = document.getElementById('targetCanvas');
+  const rCanvas   = document.getElementById('rotCanvas');
+  const tCtx      = tCanvas.getContext('2d');
+  const rCtx      = rCanvas.getContext('2d');
+  const actionBtn = document.getElementById('actionBtn');
+  const resultDiv = document.getElementById('result');
+  const detailDiv = document.getElementById('resultDetail');
+  const shapeMeta = document.getElementById('shapeMeta');
+  const lapInfo   = document.getElementById('lapInfo');
+  const sExact    = document.getElementById('sExact');
+  const sClose    = document.getElementById('sClose');
+  const sMiss     = document.getElementById('sMiss');
+
+  // ── 状態 ──
+  let state = 'idle';
+  let shape, targetAngle, rotSpeed, currentAngle, rafId;
+  let selectedSpeed = 'normal';
+  let score = { exact: 0, close: 0, miss: 0 };
+
+  // ── パス生成（原点中心）──
+  function buildPath(ctx, s, r) {
+    ctx.beginPath();
+    if (s.type === 'poly') {
+      if (s.sides === 0) {
+        ctx.arc(0, 0, r, 0, Math.PI * 2);
+      } else {
+        const a0   = (s.a0 !== undefined) ? s.a0 : -Math.PI / 2;
+        const step = (Math.PI * 2) / s.sides;
+        ctx.moveTo(r * Math.cos(a0), r * Math.sin(a0));
+        for (let i = 1; i <= s.sides; i++) {
+          ctx.lineTo(r * Math.cos(a0 + step * i), r * Math.sin(a0 + step * i));
+        }
+        ctx.closePath();
+      }
+    } else if (s.type === 'star') {
+      const rIn  = r * s.inner;
+      const step = Math.PI / s.pts;
+      const a0   = -Math.PI / 2;
+      ctx.moveTo(r * Math.cos(a0), r * Math.sin(a0));
+      for (let i = 1; i < s.pts * 2; i++) {
+        const rr = i % 2 === 0 ? r : rIn;
+        ctx.lineTo(rr * Math.cos(a0 + step * i), rr * Math.sin(a0 + step * i));
+      }
+      ctx.closePath();
+    } else if (s.type === 'cross') {
+      const w = r * 0.32;
+      ctx.moveTo(-w, -r); ctx.lineTo(w, -r);
+      ctx.lineTo(w, -w);  ctx.lineTo(r, -w);
+      ctx.lineTo(r,  w);  ctx.lineTo(w,  w);
+      ctx.lineTo(w,  r);  ctx.lineTo(-w, r);
+      ctx.lineTo(-w, w);  ctx.lineTo(-r, w);
+      ctx.lineTo(-r, -w); ctx.lineTo(-w, -w);
+      ctx.closePath();
+    } else if (s.type === 'flower') {
+      const step      = (Math.PI * 2) / s.petals;
+      const ctrlR     = r * 0.72;
+      const ctrlSpread = step * 0.42;
+      ctx.moveTo(0, 0);
+      for (let i = 0; i < s.petals; i++) {
+        const tipA = step * i - Math.PI / 2;
+        const c1a  = tipA - ctrlSpread;
+        const c2a  = tipA + ctrlSpread;
+        ctx.quadraticCurveTo(ctrlR * Math.cos(c1a), ctrlR * Math.sin(c1a),
+                             r * Math.cos(tipA),    r * Math.sin(tipA));
+        ctx.quadraticCurveTo(ctrlR * Math.cos(c2a), ctrlR * Math.sin(c2a), 0, 0);
+      }
+      ctx.closePath();
+    } else if (s.type === 'arrow') {
+      const hw = r * 0.55;
+      const sw = r * 0.25;
+      const hn = r * 0.10;
+      ctx.moveTo(0, -r);
+      ctx.lineTo( hw, -hn); ctx.lineTo( sw, -hn);
+      ctx.lineTo( sw,  r);  ctx.lineTo(-sw,  r);
+      ctx.lineTo(-sw, -hn); ctx.lineTo(-hw, -hn);
+      ctx.closePath();
+    }
+  }
+
+  function paintShape(ctx, s, cx, cy, r, angleDeg, col) {
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(angleDeg * Math.PI / 180);
+    ctx.shadowColor = col.stroke;
+    ctx.shadowBlur  = 10;
+    ctx.fillStyle   = col.fill;
+    ctx.strokeStyle = col.stroke;
+    ctx.lineWidth   = 2;
+    buildPath(ctx, s, r);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function paintOverlay(ctx, s, cx, cy, r, angleDeg) {
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(angleDeg * Math.PI / 180);
+    ctx.setLineDash([6, 4]);
+    ctx.lineWidth   = 1.8;
+    ctx.strokeStyle = 'rgba(255,180,80,0.80)';
+    ctx.shadowColor = 'rgba(255,150,50,0.4)';
+    ctx.shadowBlur  = 6;
+    buildPath(ctx, s, r);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function clear(ctx) { ctx.clearRect(0, 0, SZ, SZ); }
+
+  // ── 角度差（対称性考慮）──
+  function angularDiff(current, target, period) {
+    const d = ((current % period) - target + period) % period;
+    return Math.min(d, period - d);
+  }
+
+  // ── ゲームロジック ──
+  function pickSpeed() {
+    const [min, range] = SPEED_RANGE[selectedSpeed];
+    return min + Math.random() * range;
+  }
+
+  function newRound() {
+    cancelAnimationFrame(rafId);
+    shape        = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+    // 端の10度を避けてランダムに目標角度を設定
+    targetAngle  = 10 + Math.random() * (shape.period - 20);
+    rotSpeed     = pickSpeed();
+    currentAngle = 0;
+    state = 'idle';
+
+    clear(tCtx);
+    clear(rCtx);
+    paintShape(tCtx, shape, CX, CY, RADIUS, targetAngle, TARGET_COLOR);
+    paintShape(rCtx, shape, CX, CY, RADIUS, 0, ROT_COLOR);
+
+    shapeMeta.textContent = shape.name;
+    lapInfo.textContent   = '';
+    resultDiv.textContent = '';
+    detailDiv.textContent = '';
+
+    actionBtn.textContent = 'スタート';
+    actionBtn.className   = '';
+    actionBtn.disabled    = false;
+  }
+
+  function startRotating() {
+    state = 'rotating';
+    currentAngle = 0;
+    rotSpeed     = pickSpeed();
+    actionBtn.textContent = 'ここだ！';
+    actionBtn.className   = 'stop';
+    lapInfo.textContent   = '';
+    animate();
+  }
+
+  function animate() {
+    if (state !== 'rotating') return;
+    currentAngle += rotSpeed;
+
+    const visualLaps = Math.floor(currentAngle / shape.period);
+    lapInfo.textContent = visualLaps > 0 ? `↩ ${visualLaps}周` : '';
+
+    clear(rCtx);
+    paintShape(rCtx, shape, CX, CY, RADIUS, currentAngle, ROT_COLOR);
+    rafId = requestAnimationFrame(animate);
+  }
+
+  function judge() {
+    cancelAnimationFrame(rafId);
+    state = 'result';
+    actionBtn.disabled = true;
+
+    const diff = angularDiff(currentAngle, targetAngle, shape.period);
+    const deg  = Math.round(diff * 10) / 10;
+
+    let emoji, msg, key;
+    if (diff < 5) {
+      emoji = '⭕'; msg = `完璧！ 誤差 ${deg}°`; key = 'exact';
+    } else if (diff < 15) {
+      emoji = '<span class="delta">▲</span>'; msg = `惜しい！ 誤差 ${deg}°`; key = 'close';
+    } else {
+      emoji = '❌'; msg = `残念… 誤差 ${deg}°`; key = 'miss';
+    }
+
+    score[key]++;
+    sExact.textContent = score.exact;
+    sClose.textContent = score.close;
+    sMiss.textContent  = score.miss;
+
+    resultDiv.innerHTML = emoji;
+    resultDiv.style.animation = 'none';
+    void resultDiv.offsetWidth;
+    resultDiv.style.animation = '';
+    detailDiv.textContent = msg;
+
+    // 停止した図形の上に目標角度を点線で重ねて表示
+    setTimeout(() => {
+      paintOverlay(rCtx, shape, CX, CY, RADIUS, targetAngle);
+    }, 80);
+
+    setTimeout(() => {
+      actionBtn.textContent = '次へ';
+      actionBtn.className   = '';
+      actionBtn.disabled    = false;
+      state = 'result-ready';
+    }, 450);
+  }
+
+  // ── イベント ──
+  actionBtn.addEventListener('click', () => {
+    if      (state === 'idle')         startRotating();
+    else if (state === 'rotating')     judge();
+    else if (state === 'result-ready') newRound();
+  });
+
+  document.querySelectorAll('.spd').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.spd').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedSpeed = btn.dataset.speed;
+    });
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.code === 'Space' && !e.repeat) {
+      e.preventDefault();
+      if (!actionBtn.disabled) actionBtn.click();
+    }
+  });
+
+  newRound();
+</script>
+</body>
+</html>

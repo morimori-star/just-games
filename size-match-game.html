@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JUST SIZE</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      min-height: 100vh;
+      color: #eee;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 10px 24px;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ─── ヘッダー ─── */
+    .header {
+      width: 100%;
+      max-width: 360px;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    h1 {
+      font-size: 1.25rem;
+      letter-spacing: 0.03em;
+      background: linear-gradient(90deg, #f8cdda, #1d9bf0);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .legend {
+      font-size: 0.7rem;
+      color: #888;
+      white-space: nowrap;
+    }
+
+    /* ─── 速度セレクター ─── */
+    .speed-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .speed-label { font-size: 0.74rem; color: #888; }
+    .speed-seg {
+      display: flex;
+      background: rgba(255,255,255,0.07);
+      border-radius: 8px;
+      padding: 3px;
+      gap: 2px;
+    }
+    .spd {
+      padding: 5px 13px;
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      color: #888;
+      cursor: pointer;
+      font-size: 0.78rem;
+      font-family: inherit;
+      transition: all 0.18s;
+    }
+    .spd.active {
+      background: rgba(102,126,234,0.75);
+      color: #fff;
+      font-weight: 700;
+    }
+
+    /* ─── キャンバスエリア ─── */
+    .game-area {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+      width: 100%;
+      max-width: 360px;
+    }
+    .shape-box {
+      flex: 1;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px;
+      padding: 10px 10px 8px;
+      text-align: center;
+    }
+    .box-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #888;
+      margin-bottom: 6px;
+    }
+    .shape-box canvas { display: block; border-radius: 6px; width: 100%; }
+    .box-sub {
+      font-size: 0.7rem;
+      color: #666;
+      margin-top: 5px;
+      min-height: 16px;
+    }
+
+    /* ─── アクションボタン ─── */
+    #actionBtn {
+      font-size: 1.2rem;
+      font-weight: 700;
+      padding: 15px 0;
+      width: 100%;
+      max-width: 360px;
+      border: none;
+      border-radius: 999px;
+      cursor: pointer;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(102,126,234,0.45);
+      transition: transform 0.1s, box-shadow 0.1s, background 0.25s;
+      outline: none;
+      margin-bottom: 14px;
+    }
+    #actionBtn:active { transform: scale(0.97); }
+    #actionBtn.stop {
+      background: linear-gradient(135deg, #f7971e, #f5576c);
+      box-shadow: 0 4px 20px rgba(245,87,108,0.5);
+    }
+    #actionBtn:disabled { opacity: 0.4; cursor: default; transform: none; }
+
+    /* ─── 結果 + スコア ─── */
+    .bottom-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      max-width: 360px;
+      gap: 8px;
+    }
+    .result-area {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      min-width: 0;
+    }
+    #result {
+      font-size: 2.6rem;
+      line-height: 1;
+      animation: pop 0.3s ease;
+    }
+    @keyframes pop {
+      0%   { transform: scale(0.4); opacity: 0; }
+      65%  { transform: scale(1.2); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    #resultDetail {
+      font-size: 0.78rem;
+      color: #bbb;
+      margin-top: 2px;
+      min-height: 16px;
+    }
+    .scoreboard {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .score-cell {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      padding: 7px 10px;
+      text-align: center;
+      min-width: 48px;
+    }
+    .score-cell .lbl { font-size: 0.9rem; }
+    .score-cell .val { font-size: 1.3rem; font-weight: 700; }
+
+    .hint { font-size: 0.65rem; color: #444; margin-top: 12px; }
+    .delta { color: #e53935; font-weight: 900; font-size: 1.35em; line-height: 1; vertical-align: 2px; }
+    .legend .delta { vertical-align: 0px; }
+    .score-cell .delta { vertical-align: 0; position: relative; top: -2px; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>JUST SIZE</h1>
+  <div class="legend">⭕±5% &nbsp;<span class="delta">▲</span>±10% &nbsp;❌その他</div>
+</div>
+
+<div class="speed-wrap">
+  <span class="speed-label">速度:</span>
+  <div class="speed-seg">
+    <button class="spd" data-speed="slow">ゆっくり</button>
+    <button class="spd active" data-speed="normal">普通</button>
+    <button class="spd" data-speed="fast">速い</button>
+  </div>
+</div>
+
+<div class="game-area">
+  <div class="shape-box">
+    <div class="box-label">目標の図形</div>
+    <canvas id="targetCanvas" width="155" height="155"></canvas>
+    <div class="box-sub" id="shapeMeta"></div>
+  </div>
+  <div class="shape-box">
+    <div class="box-label">あなたの図形</div>
+    <canvas id="growingCanvas" width="155" height="155"></canvas>
+    <div class="box-sub" id="lapInfo"></div>
+  </div>
+</div>
+
+<button id="actionBtn">スタート</button>
+
+<div class="bottom-row">
+  <div class="result-area">
+    <div id="result"></div>
+    <div id="resultDetail"></div>
+  </div>
+  <div class="scoreboard">
+    <div class="score-cell"><div class="lbl">⭕</div><div class="val" id="sExact">0</div></div>
+    <div class="score-cell"><div class="lbl"><span class="delta">▲</span></div><div class="val" id="sClose">0</div></div>
+    <div class="score-cell"><div class="lbl">❌</div><div class="val" id="sMiss">0</div></div>
+  </div>
+</div>
+
+<p class="hint">スペースキーでもボタンを押せます</p>
+
+<script>
+  // ──────────────────────────────────────────────
+  //  定数
+  // ──────────────────────────────────────────────
+  const SZ = 155;
+  const CX = SZ / 2;
+  const CY = SZ / 2;
+
+  const MIN_TARGET = 20;
+  const MAX_TARGET = 65;
+  const MIN_GROW   = 4;
+  const MAX_GROW   = 74;   // ≒ SZ/2 - 3
+
+  // 速度レンジ [min, range]（px/frame）
+  const SPEED_RANGE = {
+    slow:   [0.08, 0.10],   // 0.08〜0.18
+    normal: [0.20, 0.28],   // 0.20〜0.48
+    fast:   [0.50, 0.45],   // 0.50〜0.95
+  };
+
+  const SHAPES = [
+    // 正多角形
+    { id: 'circle',   name: '円',     type: 'poly', sides: 0 },
+    { id: 'triangle', name: '三角形', type: 'poly', sides: 3 },
+    { id: 'square',   name: '四角形', type: 'poly', sides: 4, a0: -Math.PI/4 },
+    { id: 'diamond',  name: 'ひし形', type: 'poly', sides: 4, a0: -Math.PI/2 },
+    { id: 'pentagon', name: '五角形', type: 'poly', sides: 5 },
+    { id: 'hexagon',  name: '六角形', type: 'poly', sides: 6 },
+    { id: 'heptagon', name: '七角形', type: 'poly', sides: 7 },
+    { id: 'octagon',  name: '八角形', type: 'poly', sides: 8 },
+    { id: 'nonagon',  name: '九角形', type: 'poly', sides: 9 },
+    { id: 'decagon',  name: '十角形', type: 'poly', sides: 10 },
+    // 星形
+    { id: 'star4',    name: '四芒星', type: 'star', pts: 4, inner: 0.38 },
+    { id: 'star5',    name: '五芒星', type: 'star', pts: 5, inner: 0.38 },
+    { id: 'star6',    name: '六芒星', type: 'star', pts: 6, inner: 0.50 },
+    { id: 'star8',    name: '八芒星', type: 'star', pts: 8, inner: 0.42 },
+    // 特殊
+    { id: 'cross',    name: '十字形', type: 'cross' },
+    { id: 'arrow',    name: '矢印形', type: 'arrow' },
+  ];
+
+  const TARGET_COLOR = { fill: 'rgba(255,160,75,0.78)', stroke: '#ff8c42' };
+  const GROW_COLOR   = { fill: 'rgba(65,210,255,0.78)', stroke: '#00c6ff' };
+
+  // ──────────────────────────────────────────────
+  //  DOM
+  // ──────────────────────────────────────────────
+  const tCanvas   = document.getElementById('targetCanvas');
+  const gCanvas   = document.getElementById('growingCanvas');
+  const tCtx      = tCanvas.getContext('2d');
+  const gCtx      = gCanvas.getContext('2d');
+  const actionBtn = document.getElementById('actionBtn');
+  const resultDiv = document.getElementById('result');
+  const detailDiv = document.getElementById('resultDetail');
+  const shapeMeta = document.getElementById('shapeMeta');
+  const lapInfo   = document.getElementById('lapInfo');
+  const sExact    = document.getElementById('sExact');
+  const sClose    = document.getElementById('sClose');
+  const sMiss     = document.getElementById('sMiss');
+
+  // ──────────────────────────────────────────────
+  //  状態
+  // ──────────────────────────────────────────────
+  let state = 'idle';
+  let shape, targetSize, growSpeed, currentSize, lapCount, rafId;
+  let selectedSpeed = 'normal';
+  let score = { exact: 0, close: 0, miss: 0 };
+
+  // ──────────────────────────────────────────────
+  //  パス生成
+  // ──────────────────────────────────────────────
+  function buildPath(ctx, s, cx, cy, r) {
+    ctx.beginPath();
+    if (s.type === 'poly') {
+      if (s.sides === 0) {
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      } else {
+        const a0 = (s.a0 !== undefined) ? s.a0 : -Math.PI / 2;
+        const step = (Math.PI * 2) / s.sides;
+        ctx.moveTo(cx + r * Math.cos(a0), cy + r * Math.sin(a0));
+        for (let i = 1; i <= s.sides; i++) {
+          ctx.lineTo(cx + r * Math.cos(a0 + step * i), cy + r * Math.sin(a0 + step * i));
+        }
+        ctx.closePath();
+      }
+    } else if (s.type === 'star') {
+      const rIn = r * s.inner;
+      const step = Math.PI / s.pts;
+      const a0 = -Math.PI / 2;
+      ctx.moveTo(cx + r * Math.cos(a0), cy + r * Math.sin(a0));
+      for (let i = 1; i < s.pts * 2; i++) {
+        const rr = i % 2 === 0 ? r : rIn;
+        ctx.lineTo(cx + rr * Math.cos(a0 + step * i), cy + rr * Math.sin(a0 + step * i));
+      }
+      ctx.closePath();
+    } else if (s.type === 'cross') {
+      const w = r * 0.32;
+      ctx.moveTo(cx - w, cy - r);
+      ctx.lineTo(cx + w, cy - r);
+      ctx.lineTo(cx + w, cy - w);
+      ctx.lineTo(cx + r, cy - w);
+      ctx.lineTo(cx + r, cy + w);
+      ctx.lineTo(cx + w, cy + w);
+      ctx.lineTo(cx + w, cy + r);
+      ctx.lineTo(cx - w, cy + r);
+      ctx.lineTo(cx - w, cy + w);
+      ctx.lineTo(cx - r, cy + w);
+      ctx.lineTo(cx - r, cy - w);
+      ctx.lineTo(cx - w, cy - w);
+      ctx.closePath();
+    } else if (s.type === 'arrow') {
+      // 上向き矢印
+      const hw = r * 0.55;   // 矢頭の半幅
+      const sw = r * 0.25;   // 軸の半幅
+      const hy = cy - r;     // 矢頭のてっぺん
+      const hn = cy - r * 0.1; // 矢頭の付け根
+      const sb = cy + r;     // 軸の底
+      ctx.moveTo(cx, hy);
+      ctx.lineTo(cx + hw, hn);
+      ctx.lineTo(cx + sw, hn);
+      ctx.lineTo(cx + sw, sb);
+      ctx.lineTo(cx - sw, sb);
+      ctx.lineTo(cx - sw, hn);
+      ctx.lineTo(cx - hw, hn);
+      ctx.closePath();
+    }
+  }
+
+  function paintShape(ctx, s, cx, cy, r, col) {
+    ctx.save();
+    ctx.shadowColor = col.stroke;
+    ctx.shadowBlur  = 10;
+    ctx.fillStyle   = col.fill;
+    ctx.strokeStyle = col.stroke;
+    ctx.lineWidth   = 2;
+    buildPath(ctx, s, cx, cy, r);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function paintOverlay(ctx, s, cx, cy, r) {
+    ctx.save();
+    ctx.setLineDash([6, 4]);
+    ctx.lineWidth   = 1.8;
+    ctx.strokeStyle = 'rgba(255,180,80,0.75)';
+    ctx.shadowColor = 'rgba(255,150,50,0.4)';
+    ctx.shadowBlur  = 6;
+    buildPath(ctx, s, cx, cy, r);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function clear(ctx) { ctx.clearRect(0, 0, SZ, SZ); }
+
+  // ──────────────────────────────────────────────
+  //  ゲームロジック
+  // ──────────────────────────────────────────────
+  function pickSpeed() {
+    const [min, range] = SPEED_RANGE[selectedSpeed];
+    return min + Math.random() * range;
+  }
+
+  function newRound() {
+    cancelAnimationFrame(rafId);
+    shape      = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+    targetSize = MIN_TARGET + Math.floor(Math.random() * (MAX_TARGET - MIN_TARGET + 1));
+    growSpeed  = pickSpeed();
+    currentSize = MIN_GROW;
+    lapCount   = 0;
+    state = 'idle';
+
+    clear(tCtx);
+    clear(gCtx);
+    paintShape(tCtx, shape, CX, CY, targetSize, TARGET_COLOR);
+
+    shapeMeta.textContent = shape.name;
+    lapInfo.textContent   = '';
+    resultDiv.textContent = '';
+    detailDiv.textContent = '';
+
+    actionBtn.textContent = 'スタート';
+    actionBtn.className   = '';
+    actionBtn.disabled    = false;
+  }
+
+  function startGrowing() {
+    state = 'growing';
+    currentSize = MIN_GROW;
+    lapCount = 0;
+    growSpeed = pickSpeed();
+    actionBtn.textContent = 'ここだ！';
+    actionBtn.className   = 'stop';
+    lapInfo.textContent   = '';
+    animate();
+  }
+
+  function animate() {
+    if (state !== 'growing') return;
+    currentSize += growSpeed;
+    if (currentSize > MAX_GROW) {
+      currentSize = MIN_GROW;
+      lapCount++;
+    }
+    lapInfo.textContent = lapCount > 0 ? `↩ ${lapCount}周` : '';
+    clear(gCtx);
+    paintShape(gCtx, shape, CX, CY, currentSize, GROW_COLOR);
+    rafId = requestAnimationFrame(animate);
+  }
+
+  function judge() {
+    cancelAnimationFrame(rafId);
+    state = 'result';
+    actionBtn.disabled = true;
+
+    const diff = Math.abs(currentSize - targetSize) / targetSize;
+    const pct  = Math.round(diff * 100);
+
+    let emoji, msg, key;
+    if (diff < 0.05) {
+      emoji = '⭕'; msg = `完璧！ 誤差 ${pct}%`; key = 'exact';
+    } else if (diff <= 0.10) {
+      emoji = '<span class="delta">▲</span>'; msg = `惜しい！ 誤差 ${pct}%`; key = 'close';
+    } else {
+      emoji = '❌'; msg = `残念… 誤差 ${pct}%`; key = 'miss';
+    }
+
+    score[key]++;
+    sExact.textContent = score.exact;
+    sClose.textContent = score.close;
+    sMiss.textContent  = score.miss;
+
+    resultDiv.innerHTML = emoji;
+    resultDiv.style.animation = 'none';
+    void resultDiv.offsetWidth;
+    resultDiv.style.animation = '';
+
+    detailDiv.textContent = msg;
+
+    setTimeout(() => {
+      paintOverlay(gCtx, shape, CX, CY, targetSize);
+    }, 80);
+
+    setTimeout(() => {
+      actionBtn.textContent = '次へ';
+      actionBtn.className   = '';
+      actionBtn.disabled    = false;
+      state = 'result-ready';
+    }, 450);
+  }
+
+  // ──────────────────────────────────────────────
+  //  イベント
+  // ──────────────────────────────────────────────
+  actionBtn.addEventListener('click', () => {
+    if      (state === 'idle')         startGrowing();
+    else if (state === 'growing')      judge();
+    else if (state === 'result-ready') newRound();
+  });
+
+  document.querySelectorAll('.spd').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.spd').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedSpeed = btn.dataset.speed;
+    });
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.code === 'Space' && !e.repeat) {
+      e.preventDefault();
+      if (!actionBtn.disabled) actionBtn.click();
+    }
+  });
+
+  // ──────────────────────────────────────────────
+  //  初期化
+  // ──────────────────────────────────────────────
+  newRound();
+</script>
+</body>
+</html>
