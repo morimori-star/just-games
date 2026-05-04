@@ -140,14 +140,16 @@
     }
     .result-area {
       display: flex;
-      flex-direction: column;
-      align-items: flex-start;
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
       min-width: 0;
     }
     #result {
       font-size: 2.6rem;
       line-height: 1;
       animation: pop 0.3s ease;
+      flex-shrink: 0;
     }
     @keyframes pop {
       0%   { transform: scale(0.4); opacity: 0; }
@@ -155,10 +157,11 @@
       100% { transform: scale(1); opacity: 1; }
     }
     #resultDetail {
-      font-size: 0.78rem;
+      font-size: 0.92rem;
       color: #bbb;
-      margin-top: 2px;
       min-height: 16px;
+      line-height: 1.35;
+      white-space: nowrap;
     }
     .scoreboard {
       display: flex;
@@ -179,11 +182,24 @@
     .hint { font-size: 0.65rem; color: #444; margin-top: 12px; }
     .delta { color: #e53935; font-weight: 900; font-size: 1.35em; line-height: 1; vertical-align: 2px; }
     .legend .delta { vertical-align: 0px; }
-    .score-cell .delta { vertical-align: 0; position: relative; top: -2px; }
+    .score-cell .delta { vertical-align: 0; position: relative; top: 1px; }
+    .home-btn {
+      font-size: 0.72rem;
+      color: #666;
+      text-decoration: none;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 6px;
+      padding: 4px 9px;
+      transition: color 0.2s, background 0.2s;
+      white-space: nowrap;
+    }
+    .home-btn:hover { color: #ccc; background: rgba(255,255,255,0.12); }
   </style>
 </head>
 <body>
 
+<a href="index.html" class="home-btn">← TOP</a>
 <div class="header">
   <h1>JUST SIZE</h1>
   <div class="legend">⭕±5% &nbsp;<span class="delta">▲</span>±10% &nbsp;❌その他</div>
@@ -448,11 +464,11 @@
 
     let emoji, msg, key;
     if (diff < 0.05) {
-      emoji = '⭕'; msg = `完璧！ 誤差 ${pct}%`; key = 'exact';
+      emoji = '⭕'; msg = `完璧！<br>誤差 ${pct}%`; key = 'exact';
     } else if (diff <= 0.10) {
-      emoji = '<span class="delta">▲</span>'; msg = `惜しい！ 誤差 ${pct}%`; key = 'close';
+      emoji = '<span class="delta">▲</span>'; msg = `惜しい！<br>誤差 ${pct}%`; key = 'close';
     } else {
-      emoji = '❌'; msg = `残念… 誤差 ${pct}%`; key = 'miss';
+      emoji = '❌'; msg = `残念…<br>誤差 ${pct}%`; key = 'miss';
     }
 
     score[key]++;
@@ -465,7 +481,7 @@
     void resultDiv.offsetWidth;
     resultDiv.style.animation = '';
 
-    detailDiv.textContent = msg;
+    detailDiv.innerHTML = msg;
 
     setTimeout(() => {
       paintOverlay(gCtx, shape, CX, CY, targetSize);

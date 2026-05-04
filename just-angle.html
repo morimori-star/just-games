@@ -31,7 +31,7 @@
     h1 {
       font-size: 1.25rem;
       letter-spacing: 0.03em;
-      background: linear-gradient(90deg, #a8ffb0, #00e5ff);
+      background: linear-gradient(90deg, #8ec4a0, #5ab8cc);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
@@ -67,7 +67,7 @@
       transition: all 0.18s;
     }
     .spd.active {
-      background: rgba(0,180,120,0.75);
+      background: rgba(55,125,95,0.75);
       color: #fff;
       font-weight: 700;
     }
@@ -111,9 +111,9 @@
       border: none;
       border-radius: 999px;
       cursor: pointer;
-      background: linear-gradient(135deg, #00b090, #00e5a0);
+      background: linear-gradient(135deg, #2a7d65, #3d9e72);
       color: #fff;
-      box-shadow: 0 4px 20px rgba(0,180,140,0.45);
+      box-shadow: 0 4px 20px rgba(45,110,85,0.4);
       transition: transform 0.1s, box-shadow 0.1s, background 0.25s;
       outline: none;
       margin-bottom: 14px;
@@ -135,13 +135,16 @@
     }
     .result-area {
       display: flex;
-      flex-direction: column;
-      align-items: flex-start;
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
     }
     #result {
       font-size: 2.6rem;
       line-height: 1;
       animation: pop 0.3s ease;
+      flex-shrink: 0;
     }
     @keyframes pop {
       0%   { transform: scale(0.4); opacity: 0; }
@@ -149,10 +152,11 @@
       100% { transform: scale(1); opacity: 1; }
     }
     #resultDetail {
-      font-size: 0.78rem;
+      font-size: 0.92rem;
       color: #bbb;
-      margin-top: 2px;
       min-height: 16px;
+      line-height: 1.35;
+      white-space: nowrap;
     }
     .scoreboard {
       display: flex;
@@ -172,13 +176,26 @@
 
     .delta { color: #e53935; font-weight: 900; font-size: 1.35em; line-height: 1; vertical-align: 2px; }
     .legend .delta { vertical-align: 0px; }
-    .score-cell .delta { vertical-align: 0; position: relative; top: -2px; }
+    .score-cell .delta { vertical-align: 0; position: relative; top: 1px; }
+    .home-btn {
+      font-size: 0.72rem;
+      color: #666;
+      text-decoration: none;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 6px;
+      padding: 4px 9px;
+      transition: color 0.2s, background 0.2s;
+      white-space: nowrap;
+    }
+    .home-btn:hover { color: #ccc; background: rgba(255,255,255,0.12); }
 
     .hint { font-size: 0.65rem; color: #444; margin-top: 12px; }
   </style>
 </head>
 <body>
 
+<a href="index.html" class="home-btn">← TOP</a>
 <div class="header">
   <h1>JUST ANGLE</h1>
   <div class="legend">⭕±5° &nbsp;<span class="delta">▲</span>±15° &nbsp;❌その他</div>
@@ -251,7 +268,7 @@
   };
 
   const TARGET_COLOR = { fill: 'rgba(255,160,75,0.82)', stroke: '#ff8c42' };
-  const ROT_COLOR    = { fill: 'rgba(60,220,140,0.82)', stroke: '#00e090' };
+  const ROT_COLOR    = { fill: 'rgba(75,160,115,0.82)', stroke: '#3d9a6a' };
 
   // ── DOM ──
   const tCanvas   = document.getElementById('targetCanvas');
@@ -432,11 +449,11 @@
 
     let emoji, msg, key;
     if (diff < 5) {
-      emoji = '⭕'; msg = `完璧！ 誤差 ${deg}°`; key = 'exact';
+      emoji = '⭕'; msg = `完璧！<br>誤差 ${deg}°`; key = 'exact';
     } else if (diff < 15) {
-      emoji = '<span class="delta">▲</span>'; msg = `惜しい！ 誤差 ${deg}°`; key = 'close';
+      emoji = '<span class="delta">▲</span>'; msg = `惜しい！<br>誤差 ${deg}°`; key = 'close';
     } else {
-      emoji = '❌'; msg = `残念… 誤差 ${deg}°`; key = 'miss';
+      emoji = '❌'; msg = `残念…<br>誤差 ${deg}°`; key = 'miss';
     }
 
     score[key]++;
@@ -448,7 +465,7 @@
     resultDiv.style.animation = 'none';
     void resultDiv.offsetWidth;
     resultDiv.style.animation = '';
-    detailDiv.textContent = msg;
+    detailDiv.innerHTML = msg;
 
     // 停止した図形の上に目標角度を点線で重ねて表示
     setTimeout(() => {
