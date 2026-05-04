@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JUST COLOR</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      background: #0c0c0c;
+      min-height: 100vh;
+      color: #ddd;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 10px 24px;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .home-btn {
+      font-size: 0.72rem; color: #555; text-decoration: none;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 6px; padding: 4px 9px;
+      transition: color 0.2s, background 0.2s;
+      white-space: nowrap; align-self: flex-start; margin-bottom: 8px;
+    }
+    .home-btn:hover { color: #bbb; background: rgba(255,255,255,0.12); }
+
+    .header {
+      width: 100%; max-width: 360px;
+      display: flex; align-items: baseline; justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    h1 {
+      font-size: 1.25rem; letter-spacing: 0.03em;
+      background: linear-gradient(90deg, #ff6060, #ffcc00, #60dd60, #60aaff, #cc60ff);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .legend { font-size: 0.7rem; color: #777; white-space: nowrap; }
+
+    /* ── 図形エリア ── */
+    .game-area {
+      display: flex; gap: 10px; margin-bottom: 12px;
+      width: 100%; max-width: 360px;
+    }
+    .shape-box {
+      flex: 1;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px; padding: 10px 8px 8px; text-align: center;
+    }
+    .box-label {
+      font-size: 0.7rem; text-transform: uppercase;
+      letter-spacing: 1px; color: #777; margin-bottom: 6px;
+    }
+    .shape-box canvas { display: block; border-radius: 6px; width: 100%; background: #1a1a1a; }
+
+    /* ── パレット ── */
+    .palettes {
+      display: flex; gap: 12px; justify-content: center;
+      width: 100%; max-width: 360px; margin-bottom: 14px;
+    }
+    .palette { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+    .pal-label { font-size: 0.85rem; font-weight: 900; letter-spacing: 0.06em; }
+    .pal-label.r { color: #ff5555; }
+    .pal-label.g { color: #44cc44; }
+    .pal-label.b { color: #5599ff; }
+
+    .pal-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 18px);
+      gap: 2px;
+    }
+    .pal-cell {
+      width: 18px; height: 18px; border-radius: 2px;
+      cursor: pointer; position: relative;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1);
+      transition: transform 0.08s;
+    }
+    .pal-cell:hover  { transform: scale(1.2); z-index: 1; }
+    .pal-cell.selected {
+      transform: scale(1.12); z-index: 2;
+      box-shadow: 0 0 0 2px #fff, inset 0 0 0 1px rgba(255,255,255,0.1);
+    }
+
+    /* ── ボタン ── */
+    #actionBtn {
+      font-size: 1.1rem; font-weight: 700; padding: 15px 0;
+      width: 100%; max-width: 360px; border: none; border-radius: 999px;
+      cursor: pointer;
+      background: linear-gradient(135deg, #6030c0, #b030a0);
+      color: #fff; box-shadow: 0 4px 20px rgba(140,30,160,0.4);
+      transition: transform 0.1s, opacity 0.2s;
+      outline: none; margin-bottom: 14px;
+    }
+    #actionBtn:active  { transform: scale(0.97); }
+    #actionBtn:disabled { opacity: 0.3; cursor: default; transform: none; }
+
+    /* ── 結果 + スコア ── */
+    .bottom-row {
+      display: flex; align-items: center; justify-content: space-between;
+      width: 100%; max-width: 360px; gap: 8px;
+    }
+    .result-area { display: flex; flex-direction: row; align-items: center; gap: 8px; min-width: 0; }
+    #result { font-size: 2.6rem; line-height: 1; flex-shrink: 0; animation: pop 0.3s ease; }
+    @keyframes pop {
+      0%   { transform: scale(0.4); opacity: 0; }
+      65%  { transform: scale(1.2); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    #resultDetail { font-size: 0.92rem; color: #bbb; min-height: 16px; line-height: 1.35; white-space: nowrap; }
+    .scoreboard { display: flex; gap: 6px; flex-shrink: 0; }
+    .score-cell {
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px; padding: 7px 10px; text-align: center; min-width: 48px;
+    }
+    .score-cell .lbl { font-size: 0.9rem; }
+    .score-cell .val { font-size: 1.3rem; font-weight: 700; }
+
+    .delta { color: #e53935; font-weight: 900; font-size: 1.35em; line-height: 1; vertical-align: 2px; }
+    .legend .delta { vertical-align: 0; }
+    .score-cell .delta { vertical-align: 0; position: relative; top: 1px; }
+
+    .hint { font-size: 0.65rem; color: #444; margin-top: 12px; }
+  </style>
+</head>
+<body>
+
+<a href="index.html" class="home-btn">← TOP</a>
+
+<div class="header">
+  <h1>JUST COLOR</h1>
+  <div class="legend">⭕完全 &nbsp;<span class="delta">▲</span>近い &nbsp;❌外れ</div>
+</div>
+
+<div class="game-area">
+  <div class="shape-box">
+    <div class="box-label">目標の色</div>
+    <canvas id="targetCanvas" width="130" height="130"></canvas>
+  </div>
+  <div class="shape-box">
+    <div class="box-label">あなたの色</div>
+    <canvas id="playerCanvas" width="130" height="130"></canvas>
+  </div>
+</div>
+
+<div class="palettes">
+  <div class="palette">
+    <div class="pal-label r">R</div>
+    <div class="pal-grid" id="palR"></div>
+  </div>
+  <div class="palette">
+    <div class="pal-label g">G</div>
+    <div class="pal-grid" id="palG"></div>
+  </div>
+  <div class="palette">
+    <div class="pal-label b">B</div>
+    <div class="pal-grid" id="palB"></div>
+  </div>
+</div>
+
+<button id="actionBtn" disabled>R・G・B をそれぞれ選んでください</button>
+
+<div class="bottom-row">
+  <div class="result-area">
+    <div id="result"></div>
+    <div id="resultDetail"></div>
+  </div>
+  <div class="scoreboard">
+    <div class="score-cell"><div class="lbl">⭕</div><div class="val" id="sExact">0</div></div>
+    <div class="score-cell"><div class="lbl"><span class="delta">▲</span></div><div class="val" id="sClose">0</div></div>
+    <div class="score-cell"><div class="lbl">❌</div><div class="val" id="sMiss">0</div></div>
+  </div>
+</div>
+
+<p class="hint">R・G・B それぞれ1つ選んで判定！</p>
+
+<script>
+  const SZ     = 130;
+  const CX     = SZ / 2;
+  const CY     = SZ / 2;
+  const RADIUS = 50;
+
+  // 25段階のパレット値（0〜255）
+  function palVal(idx) { return Math.round(idx * 255 / 24); }
+
+  const SHAPES = [
+    { id: 'circle',   type: 'circle' },
+    { id: 'triangle', type: 'poly', sides: 3 },
+    { id: 'square',   type: 'poly', sides: 4, a0: -Math.PI / 4 },
+    { id: 'pentagon', type: 'poly', sides: 5 },
+    { id: 'hexagon',  type: 'poly', sides: 6 },
+    { id: 'star5',    type: 'star', pts: 5, inner: 0.38 },
+    { id: 'arrow',    type: 'arrow' },
+  ];
+
+  // ── DOM ──
+  const tCanvas   = document.getElementById('targetCanvas');
+  const pCanvas   = document.getElementById('playerCanvas');
+  const tCtx      = tCanvas.getContext('2d');
+  const pCtx      = pCanvas.getContext('2d');
+  const actionBtn = document.getElementById('actionBtn');
+  const resultDiv = document.getElementById('result');
+  const detailDiv = document.getElementById('resultDetail');
+  const sExact    = document.getElementById('sExact');
+  const sClose    = document.getElementById('sClose');
+  const sMiss     = document.getElementById('sMiss');
+
+  let state = 'playing';
+  let shape, targetR, targetG, targetB;
+  let selR = null, selG = null, selB = null;
+  let score = { exact: 0, close: 0, miss: 0 };
+
+  // ── パス生成 ──
+  function buildPath(ctx, s, r) {
+    ctx.beginPath();
+    if (s.type === 'circle') {
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+    } else if (s.type === 'poly') {
+      const a0   = (s.a0 !== undefined) ? s.a0 : -Math.PI / 2;
+      const step = (Math.PI * 2) / s.sides;
+      ctx.moveTo(r * Math.cos(a0), r * Math.sin(a0));
+      for (let i = 1; i <= s.sides; i++) {
+        ctx.lineTo(r * Math.cos(a0 + step * i), r * Math.sin(a0 + step * i));
+      }
+      ctx.closePath();
+    } else if (s.type === 'star') {
+      const rIn  = r * s.inner;
+      const step = Math.PI / s.pts;
+      const a0   = -Math.PI / 2;
+      ctx.moveTo(r * Math.cos(a0), r * Math.sin(a0));
+      for (let i = 1; i < s.pts * 2; i++) {
+        const rr = i % 2 === 0 ? r : rIn;
+        ctx.lineTo(rr * Math.cos(a0 + step * i), rr * Math.sin(a0 + step * i));
+      }
+      ctx.closePath();
+    } else if (s.type === 'arrow') {
+      const hw = r * 0.55, sw = r * 0.25, hn = r * 0.10;
+      ctx.moveTo(0, -r);
+      ctx.lineTo( hw, -hn); ctx.lineTo( sw, -hn);
+      ctx.lineTo( sw,  r);  ctx.lineTo(-sw,  r);
+      ctx.lineTo(-sw, -hn); ctx.lineTo(-hw, -hn);
+      ctx.closePath();
+    }
+  }
+
+  function drawShape(ctx, color) {
+    ctx.clearRect(0, 0, SZ, SZ);
+    ctx.save();
+    ctx.translate(CX, CY);
+    ctx.shadowColor = 'rgba(255,255,255,0.2)';
+    ctx.shadowBlur  = 12;
+    ctx.fillStyle   = color;
+    ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+    ctx.lineWidth   = 1.5;
+    buildPath(ctx, shape, RADIUS);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawEmpty(ctx) {
+    ctx.clearRect(0, 0, SZ, SZ);
+    ctx.save();
+    ctx.translate(CX, CY);
+    ctx.setLineDash([4, 6]);
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+    ctx.lineWidth   = 1.5;
+    buildPath(ctx, shape, RADIUS);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // ── パレット構築 ──
+  function buildPalette(containerId, channel) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = '';
+    for (let i = 0; i < 25; i++) {
+      const val  = palVal(i);
+      const cell = document.createElement('div');
+      cell.className = 'pal-cell';
+      const rv = channel === 'r' ? val : 0;
+      const gv = channel === 'g' ? val : 0;
+      const bv = channel === 'b' ? val : 0;
+      cell.style.backgroundColor = `rgb(${rv},${gv},${bv})`;
+      cell.addEventListener('click', () => onSelect(channel, val, containerId, cell));
+      container.appendChild(cell);
+    }
+  }
+
+  function onSelect(channel, val, containerId, cell) {
+    if (state !== 'playing') return;
+    document.querySelectorAll(`#${containerId} .pal-cell`).forEach(c => c.classList.remove('selected'));
+    cell.classList.add('selected');
+    if (channel === 'r') selR = val;
+    if (channel === 'g') selG = val;
+    if (channel === 'b') selB = val;
+    updatePlayerCanvas();
+    updateButton();
+  }
+
+  function updatePlayerCanvas() {
+    if (selR === null && selG === null && selB === null) {
+      drawEmpty(pCtx);
+      return;
+    }
+    drawShape(pCtx, `rgb(${selR ?? 0},${selG ?? 0},${selB ?? 0})`);
+  }
+
+  function updateButton() {
+    const ready = selR !== null && selG !== null && selB !== null;
+    actionBtn.disabled    = !ready;
+    actionBtn.textContent = ready ? '判定する' : 'R・G・B をそれぞれ選んでください';
+  }
+
+  // ── ゲームロジック ──
+  function newRound() {
+    shape   = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+    targetR = palVal(Math.floor(Math.random() * 25));
+    targetG = palVal(Math.floor(Math.random() * 25));
+    targetB = palVal(Math.floor(Math.random() * 25));
+    selR = null; selG = null; selB = null;
+    state = 'playing';
+
+    drawShape(tCtx, `rgb(${targetR},${targetG},${targetB})`);
+    drawEmpty(pCtx);
+    document.querySelectorAll('.pal-cell').forEach(c => c.classList.remove('selected'));
+    resultDiv.innerHTML = '';
+    detailDiv.innerHTML = '';
+    updateButton();
+  }
+
+  function judge() {
+    const dr   = selR - targetR;
+    const dg   = selG - targetG;
+    const db   = selB - targetB;
+    const dist = Math.sqrt(dr * dr + dg * dg + db * db);
+    const d    = Math.round(dist);
+
+    let emoji, msg, key;
+    if (dist === 0) {
+      emoji = '⭕'; msg = `完璧！<br>完全一致`; key = 'exact';
+    } else if (dist <= 22) {
+      emoji = '<span class="delta">▲</span>'; msg = `惜しい！<br>差 ${d}`; key = 'close';
+    } else {
+      emoji = '❌'; msg = `残念…<br>差 ${d}`; key = 'miss';
+    }
+
+    score[key]++;
+    sExact.textContent = score.exact;
+    sClose.textContent = score.close;
+    sMiss.textContent  = score.miss;
+
+    resultDiv.innerHTML = emoji;
+    resultDiv.style.animation = 'none';
+    void resultDiv.offsetWidth;
+    resultDiv.style.animation = '';
+    detailDiv.innerHTML = msg;
+
+    state = 'result-ready';
+    actionBtn.textContent = '次へ';
+    actionBtn.disabled    = false;
+  }
+
+  // ── イベント ──
+  actionBtn.addEventListener('click', () => {
+    if      (state === 'playing')      judge();
+    else if (state === 'result-ready') newRound();
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.code === 'Space' && !e.repeat) {
+      e.preventDefault();
+      if (!actionBtn.disabled) actionBtn.click();
+    }
+  });
+
+  // ── 初期化 ──
+  buildPalette('palR', 'r');
+  buildPalette('palG', 'g');
+  buildPalette('palB', 'b');
+  newRound();
+</script>
+</body>
+</html>

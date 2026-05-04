@@ -111,6 +111,7 @@
     .game-card:nth-child(1) { animation-delay: 0.15s; }
     .game-card:nth-child(2) { animation-delay: 0.25s; }
     .game-card:nth-child(3) { animation-delay: 0.35s; }
+    .game-card:nth-child(4) { animation-delay: 0.45s; }
 
     @keyframes cardIn {
       from { opacity: 0; transform: translateY(20px) scale(0.95); }
@@ -123,6 +124,7 @@
     .card-size:hover   { border-color: rgba(120,100,240,0.5); box-shadow: 0 12px 40px rgba(100,90,240,0.3); }
     .card-angle:hover  { border-color: rgba(0,200,140,0.5);   box-shadow: 0 12px 40px rgba(0,200,140,0.3); }
     .card-timing:hover { border-color: rgba(220,155,45,0.5);  box-shadow: 0 12px 40px rgba(200,130,20,0.3); }
+    .card-color:hover  { border-color: rgba(255,100,180,0.5); box-shadow: 0 12px 40px rgba(255,80,160,0.3); }
 
     .card-soon {
       opacity: 0.25;
@@ -153,8 +155,9 @@
 
     .card-size   .card-name { color: #a89fff; }
     .card-timing .card-name { color: #e0aa40; }
-    .card-angle .card-name { color: #50e8b0; }
-    .card-soon  .card-name { color: #445; }
+    .card-angle  .card-name { color: #50e8b0; }
+    .card-color  .card-name { color: #ff80c0; }
+    .card-soon   .card-name { color: #445; }
 
     .card-desc {
       margin-top: 8px;
@@ -217,13 +220,13 @@
       <div class="card-desc">1回転のタイミングを<br>ピタッと合わせろ</div>
     </a>
 
-    <!-- Coming Soon -->
-    <div class="game-card card-soon">
-      <div style="font-size:2.2rem;margin-bottom:14px;opacity:0.4">？</div>
+    <!-- JUST COLOR -->
+    <a href="just-color.html" class="game-card card-color">
+      <canvas class="icon" id="iconColor" width="72" height="72"></canvas>
       <div class="card-eyebrow">JUST</div>
-      <div class="card-name">???</div>
-      <div class="card-desc">coming soon</div>
-    </div>
+      <div class="card-name">COLOR</div>
+      <div class="card-desc">図形の色を<br>ピタッと合わせろ</div>
+    </a>
 
   </div>
 
@@ -400,6 +403,45 @@
 
     triangle(ctx, 0,    0.3);   // 出発位置（薄い）
     triangle(ctx, 1.2,  1.0);   // 途中位置（濃い）
+  })();
+
+  // ──────────────────────────────────────────────
+  //  COLOR カードアイコン（カラフルな円形パレット）
+  // ──────────────────────────────────────────────
+  (function() {
+    const c   = document.getElementById('iconColor');
+    const ctx = c.getContext('2d');
+    const cx = 36, cy = 36;
+
+    // 中央に六角形（ターゲット色）
+    const colors = [
+      '#ff6060', '#ffaa40', '#ffee40',
+      '#60e060', '#40aaff', '#c060ff'
+    ];
+    const r = 22;
+    colors.forEach((col, i) => {
+      const a0 = (Math.PI / 3) * i - Math.PI / 6;
+      const a1 = (Math.PI / 3) * (i + 1) - Math.PI / 6;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, r, a0, a1);
+      ctx.closePath();
+      ctx.fillStyle = col;
+      ctx.fill();
+    });
+
+    // 中央の小円（白）
+    ctx.beginPath();
+    ctx.arc(cx, cy, 9, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.fill();
+
+    // 外リング
+    ctx.beginPath();
+    ctx.arc(cx, cy, r + 4, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255,120,190,0.35)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
   })();
 </script>
 </body>
