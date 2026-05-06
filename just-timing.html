@@ -180,7 +180,7 @@
   <canvas id="gameCanvas" width="220" height="220"></canvas>
 </div>
 
-<div id="status">まず、回転速度を確認！</div>
+<div id="status">図形が回転し、途中で見えなくなります。ちょうど1回転したと思ったところで止めてください<br>まず、回転速度を確認してください</div>
 
 <button id="actionBtn" disabled>確認中…</button>
 
@@ -353,7 +353,7 @@
     gameAngle      = 0;
     state          = 'demo';
 
-    statusDiv.textContent = 'まず、回転速度を確認してください';
+    statusDiv.innerHTML = '図形が回転し、途中で見えなくなります。ちょうど1回転したと思ったところで止めてください<br>まず、回転速度を確認してください';
     statusDiv.className   = '';
     resultDiv.innerHTML   = '';
     detailDiv.innerHTML   = '';
@@ -378,7 +378,7 @@
       clear();
       paintShape(ctx, shape, RADIUS, 0, SHAPE_COLOR);
       state                 = 'idle';
-      statusDiv.textContent = '速度を覚えた？　タイミングを計れ！';
+      statusDiv.textContent = '感覚つかめた？　1回転をピタリ当てろ！';
       actionBtn.disabled    = false;
       actionBtn.textContent = 'スタート';
       return;
