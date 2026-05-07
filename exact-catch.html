@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EXACT CATCH</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #04080e, #080f1c, #04080e);
+      min-height: 100vh;
+      color: #eee;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 10px 24px;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .home-btn {
+      font-size: 0.72rem; color: #666; text-decoration: none;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 6px; padding: 4px 9px;
+      transition: color 0.2s, background 0.2s;
+      white-space: nowrap; align-self: flex-start; margin-bottom: 8px;
+    }
+    .home-btn:hover { color: #ccc; background: rgba(255,255,255,0.12); }
+
+    .header {
+      width: 100%; max-width: 360px;
+      display: flex; align-items: baseline; justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    h1 {
+      font-size: 1.25rem; letter-spacing: 0.03em;
+      background: linear-gradient(90deg, #40ee80, #30d0b0);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .legend { font-size: 0.7rem; color: #888; white-space: nowrap; }
+
+    .canvas-wrap {
+      width: 100%; max-width: 320px;
+      border-radius: 16px; overflow: hidden;
+      margin-bottom: 10px;
+      box-shadow: 0 4px 24px rgba(0,200,100,0.18);
+      cursor: pointer;
+    }
+    canvas { display: block; width: 100%; }
+
+    #status {
+      font-size: 1rem; text-align: center;
+      min-height: 1.6em; margin-bottom: 8px;
+      letter-spacing: 0.12em;
+    }
+
+    #actionBtn {
+      font-size: 1.3rem; font-weight: 900; padding: 16px 0;
+      width: 100%; max-width: 360px; border: none; border-radius: 999px;
+      cursor: pointer;
+      background: linear-gradient(135deg, #18a060, #20c878);
+      color: #fff; box-shadow: 0 4px 20px rgba(30,160,100,0.45);
+      transition: transform 0.1s, opacity 0.2s;
+      outline: none; margin-bottom: 14px;
+      letter-spacing: 0.06em;
+    }
+    #actionBtn:active  { transform: scale(0.97); }
+    #actionBtn:disabled { opacity: 0.3; cursor: default; transform: none; }
+    #actionBtn.pulsing {
+      animation: btnPulse 0.55s ease-in-out infinite alternate;
+    }
+    @keyframes btnPulse {
+      from { box-shadow: 0 4px 20px rgba(30,200,100,0.4); }
+      to   { box-shadow: 0 4px 34px rgba(30,200,100,0.9), 0 0 18px rgba(30,200,100,0.3); }
+    }
+    #actionBtn.done-btn {
+      background: linear-gradient(135deg, #1060b0, #1898d8);
+      box-shadow: 0 4px 20px rgba(20,120,200,0.4);
+      animation: none;
+    }
+
+    .bottom-row {
+      display: flex; align-items: center; justify-content: space-between;
+      width: 100%; max-width: 360px; gap: 8px;
+    }
+    .result-area { display: flex; flex-direction: row; align-items: center; gap: 8px; min-width: 0; }
+    #result { font-size: 2.6rem; line-height: 1; flex-shrink: 0; animation: pop 0.3s ease; }
+    @keyframes pop {
+      0%   { transform: scale(0.4); opacity: 0; }
+      65%  { transform: scale(1.2); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    #resultDetail { font-size: 0.92rem; color: #bbb; min-height: 16px; line-height: 1.35; white-space: nowrap; }
+    .scoreboard { display: flex; gap: 6px; flex-shrink: 0; }
+    .score-cell {
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px; padding: 7px 10px; text-align: center; min-width: 48px;
+    }
+    .score-cell .lbl { font-size: 0.9rem; }
+    .score-cell .val { font-size: 1.3rem; font-weight: 700; }
+
+    .delta { color: #e53935; font-weight: 900; font-size: 1.35em; line-height: 1; vertical-align: 2px; }
+    .legend .delta { vertical-align: 0; }
+    .score-cell .delta { vertical-align: 0; position: relative; top: 1px; }
+
+    .hint { font-size: 0.65rem; color: #778; margin-top: 12px; }
+  </style>
+</head>
+<body>
+
+<a href="index.html" class="home-btn">← TOP</a>
+
+<div class="header">
+  <h1>EXACT CATCH</h1>
+  <div class="legend">⭕ぴったり &nbsp;<span class="delta">▲</span>惜しい &nbsp;❌外れ</div>
+</div>
+
+<div class="canvas-wrap" id="canvasWrap">
+  <canvas id="gameCanvas"></canvas>
+</div>
+
+<div id="status"></div>
+
+<button id="actionBtn">スタート</button>
+
+<div class="bottom-row">
+  <div class="result-area">
+    <div id="result"></div>
+    <div id="resultDetail"></div>
+  </div>
+  <div class="scoreboard">
+    <div class="score-cell"><div class="lbl">⭕</div><div class="val" id="sExact">0</div></div>
+    <div class="score-cell"><div class="lbl"><span class="delta">▲</span></div><div class="val" id="sClose">0</div></div>
+    <div class="score-cell"><div class="lbl">❌</div><div class="val" id="sMiss">0</div></div>
+  </div>
+</div>
+
+<p class="hint">ボールがラインと重なった瞬間にキャッチ！3球連続</p>
+
+<script>
+  // ── キャンバスサイズ ──
+  const SZ_W = 300, SZ_H = 420;
+  const canvas = document.getElementById('gameCanvas');
+  canvas.width = SZ_W; canvas.height = SZ_H;
+  const ctx = canvas.getContext('2d');
+
+  // ── 定数 ──
+  const BALL_R        = 20;
+  const LINE_Y        = 350;
+  const EXACT_THRESH  = 22;
+  const CLOSE_THRESH  = 52;
+  const AUTO_MISS_Y   = LINE_Y + 70;
+  const G_MIN         = 0.042;
+  const G_MAX         = 0.076;
+  const WAIT_MIN      = 700;
+  const WAIT_MAX      = 2400;
+  const BALLS_PER_SET = 3;
+
+  const BALL_COLORS = ['#ff5566','#ff9933','#ffdd22','#44dd66','#44aaff','#cc55ff','#ff66aa'];
+
+  // ── 星（固定）──
+  const STARS = Array.from({ length: 38 }, () => ({
+    x: Math.random() * SZ_W,
+    y: Math.random() * SZ_H * 0.82,
+    r: Math.random() * 1.3 + 0.4,
+    a: Math.random() * 0.45 + 0.08
+  }));
+
+  // ── 状態 ──
+  let state     = 'ready';
+  let ballX     = SZ_W / 2;
+  let ballY     = -BALL_R;
+  let ballVY    = 0;
+  let gravity   = 0.055;
+  let ballColor = BALL_COLORS[0];
+  let ballCount = 0;
+  let setResults = [];
+  let rafId     = 0;
+  let timerId   = 0;
+  let score     = { exact: 0, close: 0, miss: 0 };
+
+  // ── DOM ──
+  const statusDiv = document.getElementById('status');
+  const resultDiv = document.getElementById('result');
+  const detailDiv = document.getElementById('resultDetail');
+  const actionBtn = document.getElementById('actionBtn');
+  const sExactEl  = document.getElementById('sExact');
+  const sCloseEl  = document.getElementById('sClose');
+  const sMissEl   = document.getElementById('sMiss');
+
+  // ── 描画 ──
+  function drawBg() {
+    const g = ctx.createLinearGradient(0, 0, 0, SZ_H);
+    g.addColorStop(0, '#040810');
+    g.addColorStop(1, '#08101e');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, SZ_W, SZ_H);
+    STARS.forEach(s => {
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,255,255,${s.a})`;
+      ctx.fill();
+    });
+  }
+
+  function drawCatchLine() {
+    // ⭕ ゾーン（薄いグリーン帯）
+    ctx.fillStyle = 'rgba(0,220,120,0.07)';
+    ctx.fillRect(0, LINE_Y - EXACT_THRESH, SZ_W, EXACT_THRESH * 2);
+    // ▲ ゾーン（さらに薄い黄帯）
+    ctx.fillStyle = 'rgba(255,220,40,0.03)';
+    ctx.fillRect(0, LINE_Y - CLOSE_THRESH, SZ_W, CLOSE_THRESH * 2);
+    // ライン本体
+    ctx.save();
+    ctx.shadowColor = '#00e890';
+    ctx.shadowBlur  = 14;
+    ctx.strokeStyle = '#00e890';
+    ctx.lineWidth   = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, LINE_Y); ctx.lineTo(SZ_W, LINE_Y);
+    ctx.stroke();
+    ctx.restore();
+    // ラベル
+    ctx.fillStyle = 'rgba(0,220,130,0.45)';
+    ctx.font      = '10px sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText('CATCH', SZ_W - 6, LINE_Y - 5);
+  }
+
+  function shadeHex(hex, amt) {
+    const clamp = v => Math.max(0, Math.min(255, v));
+    const r = clamp(parseInt(hex.slice(1,3), 16) + amt);
+    const g = clamp(parseInt(hex.slice(3,5), 16) + amt);
+    const b = clamp(parseInt(hex.slice(5,7), 16) + amt);
+    return `rgb(${r},${g},${b})`;
+  }
+
+  function drawBall(x, y, color) {
+    ctx.save();
+    ctx.shadowColor = color;
+    ctx.shadowBlur  = 20;
+    const g = ctx.createRadialGradient(x - BALL_R * 0.35, y - BALL_R * 0.35, 1, x, y, BALL_R);
+    g.addColorStop(0,    '#ffffff');
+    g.addColorStop(0.35, color);
+    g.addColorStop(1,    shadeHex(color, -50));
+    ctx.beginPath();
+    ctx.arc(x, y, BALL_R, 0, Math.PI * 2);
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.shadowBlur  = 0;
+    ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+    ctx.lineWidth   = 1.5;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawBallCount() {
+    ctx.fillStyle = 'rgba(140,170,210,0.6)';
+    ctx.font      = 'bold 13px sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(`${ballCount + 1} / ${BALLS_PER_SET}`, SZ_W - 8, 22);
+  }
+
+  function draw() {
+    drawBg();
+    drawCatchLine();
+    if (state === 'falling' || state === 'result') {
+      drawBall(ballX, ballY, ballColor);
+      drawBallCount();
+    }
+  }
+
+  // ── ゲームロジック ──
+  function startSet() {
+    clearTimeout(timerId);
+    cancelAnimationFrame(rafId);
+    ballCount  = 0;
+    setResults = [];
+    resultDiv.innerHTML = '';
+    detailDiv.innerHTML = '';
+    updateStatus();
+
+    state = 'waiting';
+    actionBtn.disabled    = true;
+    actionBtn.className   = '';
+    actionBtn.textContent = '...';
+    draw();
+
+    timerId = setTimeout(dropBall, 600 + Math.random() * 600);
+  }
+
+  function dropBall() {
+    ballX     = BALL_R + 24 + Math.random() * (SZ_W - (BALL_R + 24) * 2);
+    ballY     = -BALL_R;
+    ballVY    = 0;
+    gravity   = G_MIN + Math.random() * (G_MAX - G_MIN);
+    ballColor = BALL_COLORS[Math.floor(Math.random() * BALL_COLORS.length)];
+    state     = 'falling';
+
+    actionBtn.textContent = 'CATCH ！';
+    actionBtn.disabled    = false;
+    actionBtn.className   = 'pulsing';
+
+    cancelAnimationFrame(rafId);
+    rafId = requestAnimationFrame(gameLoop);
+  }
+
+  function gameLoop() {
+    if (state !== 'falling') return;
+    ballVY += gravity;
+    ballY  += ballVY;
+
+    if (ballY > AUTO_MISS_Y) {
+      registerResult(true);
+      return;
+    }
+    draw();
+    rafId = requestAnimationFrame(gameLoop);
+  }
+
+  function tryToCatch() {
+    if (state !== 'falling') return;
+    cancelAnimationFrame(rafId);
+    registerResult(false);
+  }
+
+  function registerResult(autoMiss) {
+    const dist = ballY - LINE_Y; // 負=ライン上, 正=ライン下
+    const d    = Math.abs(dist);
+    let key, emoji, msg;
+
+    if (autoMiss || d > CLOSE_THRESH) {
+      key   = 'miss';
+      emoji = '❌';
+      msg   = autoMiss ? '残念…<br>逃した' :
+              (dist < 0 ? '残念…<br>早すぎ' : '残念…<br>遅すぎ');
+    } else if (d <= EXACT_THRESH) {
+      key   = 'exact';
+      emoji = '⭕';
+      msg   = d < 4 ? '完璧！<br>ジャストキャッチ' : '完璧！';
+    } else {
+      key   = 'close';
+      emoji = '<span class="delta">▲</span>';
+      msg   = dist < 0 ? '惜しい！<br>早すぎ' : '惜しい！<br>遅すぎ';
+    }
+
+    score[key]++;
+    sExactEl.textContent = score.exact;
+    sCloseEl.textContent = score.close;
+    sMissEl.textContent  = score.miss;
+
+    setResults.push(key);
+    updateStatus();
+
+    resultDiv.innerHTML = emoji;
+    resultDiv.style.animation = 'none';
+    void resultDiv.offsetWidth;
+    resultDiv.style.animation = '';
+    detailDiv.innerHTML = msg;
+
+    state = 'result';
+    actionBtn.disabled    = true;
+    actionBtn.className   = '';
+    actionBtn.textContent = '...';
+    draw(); // ボールを止めて表示
+
+    timerId = setTimeout(() => {
+      ballCount++;
+      if (ballCount >= BALLS_PER_SET) {
+        setDone();
+      } else {
+        state = 'waiting';
+        draw(); // ボールを消す
+        timerId = setTimeout(dropBall, WAIT_MIN + Math.random() * (WAIT_MAX - WAIT_MIN));
+      }
+    }, 1000);
+  }
+
+  function setDone() {
+    state = 'done';
+    actionBtn.textContent = '次へ';
+    actionBtn.disabled    = false;
+    actionBtn.className   = 'done-btn';
+    draw(); // ボールなし
+  }
+
+  function updateStatus() {
+    if (state === 'ready') { statusDiv.textContent = ''; return; }
+    const icons = setResults.map(r =>
+      r === 'exact' ? '⭕' :
+      r === 'close' ? '<span class="delta" style="font-size:0.95em;vertical-align:1px">▲</span>' :
+      '❌'
+    ).join('&nbsp;');
+    const dots = Array(BALLS_PER_SET - setResults.length).fill('・').join('');
+    statusDiv.innerHTML = `<span style="font-size:1.1rem">${icons}${icons ? '&nbsp;' : ''}${dots}</span>`;
+  }
+
+  // ── イベント ──
+  actionBtn.addEventListener('click', () => {
+    if      (state === 'ready' || state === 'done') startSet();
+    else if (state === 'falling')                   tryToCatch();
+  });
+
+  document.getElementById('canvasWrap').addEventListener('click', () => {
+    if (state === 'falling') tryToCatch();
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.code === 'Space' && !e.repeat) {
+      e.preventDefault();
+      if (state === 'falling') tryToCatch();
+      else if (!actionBtn.disabled) actionBtn.click();
+    }
+  });
+
+  // ── 初期描画 ──
+  draw();
+  updateStatus();
+</script>
+</body>
+</html>
