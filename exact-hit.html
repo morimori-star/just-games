@@ -308,7 +308,7 @@
 
   function draw() {
     drawIce();
-    drawHouseRings(targetY);
+    drawHouseRings(TARGET_Y0);                     // リングは元位置に固定
     if (state === 'pulling') drawPowerIndicator();
     if (state === 'result')  drawGapLine();
     drawStone(CX, targetY, '#e4f2ff', '#5888bc');  // ターゲット（青白）
@@ -357,7 +357,13 @@
   canvas.addEventListener('mouseleave',  onUp);
 
   // ── リリース & アニメーション ──
-  const SPEED = 7; // px/frame
+  const AVG_SPEED = 5; // 平均移動速度（px/frame）
+  let animProgress = 0;
+  let p1Frames = 1, p2Frames = 1;
+  let p1StartY = 0;
+
+  // ease-out quadratic（最初速く→徐々に減速）
+  function easeOut(t) { return 1 - (1 - t) * (1 - t); }
 
   function release() {
     const travel = pullDist * MULTIPLIER;
@@ -366,31 +372,42 @@
     playerFinalY = overshoot <= 0 ? PLAYER_Y0 - travel : CONTACT_Y;
     targetFinalY = overshoot > 0  ? TARGET_Y0 - Math.min(overshoot, 100) : TARGET_Y0;
 
-    state     = 'animating';
-    animPhase = 1;
+    const p1Dist = (PLAYER_Y0 + pullDist) - playerFinalY;
+    const p2Dist = overshoot > 0 ? (TARGET_Y0 - targetFinalY) : 0;
+
+    p1Frames     = Math.max(20, Math.round(p1Dist / AVG_SPEED));
+    p2Frames     = Math.max(12, Math.round(p2Dist / 4));
+    p1StartY     = PLAYER_Y0 + pullDist;
+    animProgress = 0;
+    animPhase    = 1;
+    state        = 'animating';
     statusDiv.textContent = '';
     requestAnimationFrame(animStep);
   }
 
   function animStep() {
     if (animPhase === 1) {
-      playerY -= SPEED;
-      if (playerY <= playerFinalY) {
+      animProgress += 1 / p1Frames;
+      if (animProgress >= 1) animProgress = 1;
+      const p1Dist = p1StartY - playerFinalY;
+      playerY = p1StartY - p1Dist * easeOut(animProgress);
+      draw();
+      if (animProgress >= 1) {
         playerY = playerFinalY;
-        draw();
-        if (overshoot > 0) { animPhase = 2; requestAnimationFrame(animStep); }
+        if (overshoot > 0) { animPhase = 2; animProgress = 0; requestAnimationFrame(animStep); }
         else showResult();
-        return;
+      } else {
+        requestAnimationFrame(animStep);
       }
     } else {
-      targetY -= SPEED;
-      if (targetY <= targetFinalY) {
-        targetY = targetFinalY;
-        draw(); showResult(); return;
-      }
+      animProgress += 1 / p2Frames;
+      if (animProgress >= 1) animProgress = 1;
+      const p2Dist = TARGET_Y0 - targetFinalY;
+      targetY = TARGET_Y0 - p2Dist * easeOut(animProgress);
+      draw();
+      if (animProgress >= 1) { targetY = targetFinalY; showResult(); }
+      else requestAnimationFrame(animStep);
     }
-    draw();
-    requestAnimationFrame(animStep);
   }
 
   // ── 判定 ──
