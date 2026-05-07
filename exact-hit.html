@@ -370,9 +370,10 @@
     const travel = pullDist * MULTIPLIER;
     overshoot    = travel - PERF_TRAVEL;
 
-    // 引き量が多いほど減速を弱く（勢いよくぶつかる）
-    const ratio = pullDist / MAX_PULL;
-    easePow = 2.8 - ratio * 1.8; // 小引き→2.8(強减速)、大引き→1.0(ほぼ等速)
+    // 引き量に応じて減速の強さ・初速を変える
+    const ratio    = pullDist / MAX_PULL;
+    easePow        = 2.8 - ratio * 1.8;                    // 小引き→強減速、大引き→ほぼ等速
+    const initSpeed = AVG_SPEED * (0.45 + ratio * 1.55);  // 小引き→遅い、大引き→速い
 
     playerFinalY = overshoot <= 0 ? PLAYER_Y0 - travel : CONTACT_Y;
     targetFinalY = overshoot > 0  ? TARGET_Y0 - Math.min(overshoot, 100) : TARGET_Y0;
@@ -380,7 +381,7 @@
     const p1Dist = (PLAYER_Y0 + pullDist) - playerFinalY;
     const p2Dist = overshoot > 0 ? (TARGET_Y0 - targetFinalY) : 0;
 
-    p1Frames     = Math.max(20, Math.round(p1Dist / AVG_SPEED));
+    p1Frames     = Math.max(15, Math.round(p1Dist / initSpeed));
     p2Frames     = Math.max(12, Math.round(p2Dist / 4));
     p1StartY     = PLAYER_Y0 + pullDist;
     animProgress = 0;
@@ -422,10 +423,12 @@
     const pct = Math.round(d / PERF_TRAVEL * 100);
 
     let emoji, key, msg;
-    if (d <= EXACT_THRESH) {
+    if (overshoot >= 0 && d <= EXACT_THRESH) {
+      // 接触あり・かつ誤差小 → 完璧
       emoji = '⭕'; key = 'exact';
       msg   = d === 0 ? '完璧！<br>ジャストヒット' : `完璧！<br>誤差 ${pct}%`;
     } else if (d <= CLOSE_THRESH) {
+      // 未接触 or 押しすぎ・惜しい範囲
       emoji = '<span class="delta">▲</span>'; key = 'close';
       msg   = overshoot > 0 ? `惜しい！<br>押しすぎ ${pct}%` : `惜しい！<br>届かず ${pct}%`;
     } else {
