@@ -361,13 +361,18 @@
   let animProgress = 0;
   let p1Frames = 1, p2Frames = 1;
   let p1StartY = 0;
+  let easePow = 2; // 引き量に応じて変化（小→強い減速、大→弱い減速）
 
-  // ease-out quadratic（最初速く→徐々に減速）
-  function easeOut(t) { return 1 - (1 - t) * (1 - t); }
+  // ease-out（指数は引き量で制御）
+  function easeOut(t) { return 1 - Math.pow(1 - t, easePow); }
 
   function release() {
     const travel = pullDist * MULTIPLIER;
     overshoot    = travel - PERF_TRAVEL;
+
+    // 引き量が多いほど減速を弱く（勢いよくぶつかる）
+    const ratio = pullDist / MAX_PULL;
+    easePow = 2.8 - ratio * 1.8; // 小引き→2.8(強减速)、大引き→1.0(ほぼ等速)
 
     playerFinalY = overshoot <= 0 ? PLAYER_Y0 - travel : CONTACT_Y;
     targetFinalY = overshoot > 0  ? TARGET_Y0 - Math.min(overshoot, 100) : TARGET_Y0;
