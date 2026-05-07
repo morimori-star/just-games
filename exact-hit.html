@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EXACT HIT</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #08101e, #0d1e36, #081018);
+      min-height: 100vh;
+      color: #eee;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 10px 24px;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .home-btn {
+      font-size: 0.72rem; color: #666; text-decoration: none;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 6px; padding: 4px 9px;
+      transition: color 0.2s, background 0.2s;
+      white-space: nowrap; align-self: flex-start; margin-bottom: 8px;
+    }
+    .home-btn:hover { color: #ccc; background: rgba(255,255,255,0.12); }
+
+    .header {
+      width: 100%; max-width: 360px;
+      display: flex; align-items: baseline; justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    h1 {
+      font-size: 1.25rem; letter-spacing: 0.03em;
+      background: linear-gradient(90deg, #60c8ff, #a0e8ff);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .legend { font-size: 0.7rem; color: #888; white-space: nowrap; }
+
+    .canvas-wrap {
+      width: 100%; max-width: 320px;
+      margin-bottom: 10px;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 4px 28px rgba(0, 80, 180, 0.35);
+      touch-action: none;
+    }
+    canvas { display: block; width: 100%; cursor: grab; }
+    canvas:active { cursor: grabbing; }
+
+    #status {
+      font-size: 0.82rem; color: #90b8d8;
+      margin-bottom: 10px; text-align: center;
+      min-height: 2em; line-height: 1.55;
+    }
+
+    .bottom-row {
+      display: flex; align-items: center; justify-content: space-between;
+      width: 100%; max-width: 360px; gap: 8px;
+    }
+    .result-area { display: flex; flex-direction: row; align-items: center; gap: 8px; min-width: 0; }
+    #result { font-size: 2.6rem; line-height: 1; flex-shrink: 0; animation: pop 0.3s ease; }
+    @keyframes pop {
+      0%   { transform: scale(0.4); opacity: 0; }
+      65%  { transform: scale(1.2); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    #resultDetail { font-size: 0.92rem; color: #bbb; min-height: 16px; line-height: 1.35; white-space: nowrap; }
+    .scoreboard { display: flex; gap: 6px; flex-shrink: 0; }
+    .score-cell {
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px; padding: 7px 10px; text-align: center; min-width: 48px;
+    }
+    .score-cell .lbl { font-size: 0.9rem; }
+    .score-cell .val { font-size: 1.3rem; font-weight: 700; }
+
+    .delta { color: #e53935; font-weight: 900; font-size: 1.35em; line-height: 1; vertical-align: 2px; }
+    .legend .delta { vertical-align: 0; }
+    .score-cell .delta { vertical-align: 0; position: relative; top: 1px; }
+
+    #nextBtn {
+      display: none;
+      font-size: 1.1rem; font-weight: 700; padding: 14px 0;
+      width: 100%; max-width: 360px; border: none; border-radius: 999px;
+      cursor: pointer;
+      background: linear-gradient(135deg, #1060b0, #1898d8);
+      color: #fff; box-shadow: 0 4px 20px rgba(20,120,200,0.4);
+      transition: transform 0.1s;
+      outline: none; margin-top: 12px;
+    }
+    #nextBtn:active { transform: scale(0.97); }
+
+    .hint { font-size: 0.65rem; color: #778; margin-top: 12px; }
+  </style>
+</head>
+<body>
+
+<a href="index.html" class="home-btn">← TOP</a>
+
+<div class="header">
+  <h1>EXACT HIT</h1>
+  <div class="legend">⭕ぴったり &nbsp;<span class="delta">▲</span>惜しい &nbsp;❌外れ</div>
+</div>
+
+<div class="canvas-wrap">
+  <canvas id="gameCanvas"></canvas>
+</div>
+
+<div id="status">石を下に引いて離す<br>ちょうど触れる強さを当てろ！</div>
+
+<div class="bottom-row">
+  <div class="result-area">
+    <div id="result"></div>
+    <div id="resultDetail"></div>
+  </div>
+  <div class="scoreboard">
+    <div class="score-cell"><div class="lbl">⭕</div><div class="val" id="sExact">0</div></div>
+    <div class="score-cell"><div class="lbl"><span class="delta">▲</span></div><div class="val" id="sClose">0</div></div>
+    <div class="score-cell"><div class="lbl">❌</div><div class="val" id="sMiss">0</div></div>
+  </div>
+</div>
+
+<button id="nextBtn">次へ</button>
+
+<p class="hint">石を下に引いて離すと前方の石へ向かって進みます</p>
+
+<script>
+  // ── キャンバスサイズ ──
+  const SZ_W = 300;
+  const SZ_H = 460;
+  const CX   = SZ_W / 2;
+
+  const canvas = document.getElementById('gameCanvas');
+  canvas.width  = SZ_W;
+  canvas.height = SZ_H;
+  const ctx = canvas.getContext('2d');
+
+  // ── ゲーム定数 ──
+  const R           = 34;                        // 石の半径
+  const TARGET_Y0   = 90;                        // ターゲット中心Y（初期）
+  const PLAYER_Y0   = 365;                       // プレイヤー中心Y（初期）
+  const CONTACT_Y   = TARGET_Y0 + R * 2;        // 接触時プレイヤー中心Y = 158
+  const PERF_TRAVEL = PLAYER_Y0 - CONTACT_Y;    // 完璧な移動距離 = 207px
+  const MAX_PULL    = 92;                        // 最大引き量（px）
+  const PERF_PULL   = 57;                        // 完璧な引き量（px）
+  const MULTIPLIER  = PERF_TRAVEL / PERF_PULL;  // ≈3.63
+
+  const EXACT_THRESH = 8;   // ⭕ しきい値（px）
+  const CLOSE_THRESH = 25;  // ▲ しきい値（px）
+
+  // ── 状態 ──
+  let state     = 'ready'; // ready | pulling | animating | result
+  let pullDist  = 0;
+  let playerY   = PLAYER_Y0;
+  let targetY   = TARGET_Y0;
+  let overshoot = 0;
+  let animPhase = 1;
+  let playerFinalY, targetFinalY;
+  let score = { exact: 0, close: 0, miss: 0 };
+
+  // ── DOM ──
+  const statusDiv = document.getElementById('status');
+  const resultDiv = document.getElementById('result');
+  const detailDiv = document.getElementById('resultDetail');
+  const nextBtn   = document.getElementById('nextBtn');
+  const sExact    = document.getElementById('sExact');
+  const sClose    = document.getElementById('sClose');
+  const sMiss     = document.getElementById('sMiss');
+
+  // ── 描画 ──
+  function drawIce() {
+    const g = ctx.createLinearGradient(0, 0, 0, SZ_H);
+    g.addColorStop(0,   '#c4dff0');
+    g.addColorStop(0.5, '#d8eef8');
+    g.addColorStop(1,   '#b8d4e8');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, SZ_W, SZ_H);
+
+    // レーン境界線
+    ctx.save();
+    ctx.strokeStyle = 'rgba(140,190,220,0.55)';
+    ctx.lineWidth   = 1;
+    const laneHalf  = R + 14;
+    ctx.beginPath();
+    ctx.moveTo(CX - laneHalf, 0);   ctx.lineTo(CX - laneHalf, SZ_H);
+    ctx.moveTo(CX + laneHalf, 0);   ctx.lineTo(CX + laneHalf, SZ_H);
+    ctx.stroke();
+
+    // 中心破線
+    ctx.strokeStyle = 'rgba(140,190,220,0.3)';
+    ctx.setLineDash([6, 9]);
+    ctx.beginPath();
+    ctx.moveTo(CX, 0); ctx.lineTo(CX, SZ_H);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+
+  function drawHouseRings(y) {
+    [R + 32, R + 16].forEach((r, i) => {
+      ctx.beginPath();
+      ctx.arc(CX, y, r, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(80,150,210,${0.22 - i * 0.07})`;
+      ctx.lineWidth   = 1.5;
+      ctx.stroke();
+    });
+  }
+
+  function drawStone(x, y, fill, stroke) {
+    ctx.save();
+    ctx.shadowColor   = 'rgba(0, 50, 110, 0.35)';
+    ctx.shadowBlur    = 10;
+    ctx.shadowOffsetY = 3;
+    // 本体
+    ctx.beginPath();
+    ctx.arc(x, y, R, 0, Math.PI * 2);
+    ctx.fillStyle   = fill;
+    ctx.fill();
+    ctx.shadowBlur  = 0;
+    ctx.shadowOffsetY = 0;
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth   = 2.5;
+    ctx.stroke();
+    // 内リング
+    ctx.beginPath();
+    ctx.arc(x, y, R * 0.62, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255,255,255,0.38)';
+    ctx.lineWidth   = 1.5;
+    ctx.stroke();
+    // ハンドル
+    ctx.beginPath();
+    ctx.arc(x, y, R * 0.22, 0, Math.PI * 2);
+    ctx.fillStyle = stroke;
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawPowerIndicator() {
+    if (pullDist <= 0) return;
+    const ratio = pullDist / MAX_PULL;
+
+    // 上向き矢印（石の真上）
+    const arrowBase = playerY - R - 5;
+    const arrowTip  = arrowBase - (18 + ratio * 52);
+    ctx.save();
+    ctx.strokeStyle = `rgba(255,140,30,${0.45 + ratio * 0.45})`;
+    ctx.lineWidth   = 2.5;
+    ctx.lineCap     = 'round';
+    ctx.beginPath();
+    ctx.moveTo(CX, arrowBase);
+    ctx.lineTo(CX, arrowTip);
+    ctx.stroke();
+    // 矢印先端
+    ctx.beginPath();
+    ctx.moveTo(CX - 7, arrowTip + 10);
+    ctx.lineTo(CX,     arrowTip);
+    ctx.lineTo(CX + 7, arrowTip + 10);
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.restore();
+
+    // パワーバー（右端）
+    const bx = SZ_W - 17;
+    const bh = 110;
+    const by = PLAYER_Y0 - bh / 2;
+    const fh = bh * ratio;
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,60,130,0.18)';
+    ctx.fillRect(bx - 4, by, 8, bh);
+    // グラデーション塗り
+    const bg = ctx.createLinearGradient(0, by + bh - fh, 0, by + bh);
+    bg.addColorStop(0, '#ff9020');
+    bg.addColorStop(1, '#ff3800');
+    ctx.fillStyle = bg;
+    ctx.fillRect(bx - 4, by + bh - fh, 8, fh);
+    // MAX ラベル
+    ctx.fillStyle   = 'rgba(255,130,40,0.55)';
+    ctx.font        = '8px sans-serif';
+    ctx.textAlign   = 'center';
+    ctx.fillText('MAX', bx, by - 2);
+    ctx.restore();
+  }
+
+  function drawGapLine() {
+    // 届かなかった場合: ギャップ破線
+    if (overshoot < -CLOSE_THRESH) {
+      const gTop = targetY + R;
+      const gBot = playerY - R;
+      if (gBot > gTop + 4) {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(240,80,80,0.55)';
+        ctx.lineWidth   = 1.5;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(CX, gTop);
+        ctx.lineTo(CX, gBot);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+      }
+    }
+  }
+
+  function draw() {
+    drawIce();
+    drawHouseRings(targetY);
+    if (state === 'pulling') drawPowerIndicator();
+    if (state === 'result')  drawGapLine();
+    drawStone(CX, targetY, '#e4f2ff', '#5888bc');  // ターゲット（青白）
+    drawStone(CX, playerY, '#ff9040', '#bf5010');  // プレイヤー（橙）
+  }
+
+  // ── タッチ / マウス ──
+  function getLogicalY(e) {
+    const rect   = canvas.getBoundingClientRect();
+    const scaleY = SZ_H / rect.height;
+    const cy     = (e.touches ? e.touches[0].clientY : e.clientY);
+    return (cy - rect.top) * scaleY;
+  }
+
+  function onDown(e) {
+    if (state !== 'ready') return;
+    const y = getLogicalY(e);
+    if (Math.abs(y - PLAYER_Y0) < R + 28) {
+      state = 'pulling';
+      e.preventDefault();
+    }
+  }
+
+  function onMove(e) {
+    if (state !== 'pulling') return;
+    e.preventDefault();
+    pullDist = Math.max(0, Math.min(MAX_PULL, getLogicalY(e) - PLAYER_Y0));
+    playerY  = PLAYER_Y0 + pullDist;
+    draw();
+  }
+
+  function onUp() {
+    if (state !== 'pulling') return;
+    if (pullDist < 5) {
+      state = 'ready'; pullDist = 0; playerY = PLAYER_Y0; draw(); return;
+    }
+    release();
+  }
+
+  canvas.addEventListener('touchstart',  onDown, { passive: false });
+  canvas.addEventListener('touchmove',   onMove, { passive: false });
+  canvas.addEventListener('touchend',    onUp);
+  canvas.addEventListener('mousedown',   onDown);
+  canvas.addEventListener('mousemove',   onMove);
+  canvas.addEventListener('mouseup',     onUp);
+  canvas.addEventListener('mouseleave',  onUp);
+
+  // ── リリース & アニメーション ──
+  const SPEED = 7; // px/frame
+
+  function release() {
+    const travel = pullDist * MULTIPLIER;
+    overshoot    = travel - PERF_TRAVEL;
+
+    playerFinalY = overshoot <= 0 ? PLAYER_Y0 - travel : CONTACT_Y;
+    targetFinalY = overshoot > 0  ? TARGET_Y0 - Math.min(overshoot, 100) : TARGET_Y0;
+
+    state     = 'animating';
+    animPhase = 1;
+    statusDiv.textContent = '';
+    requestAnimationFrame(animStep);
+  }
+
+  function animStep() {
+    if (animPhase === 1) {
+      playerY -= SPEED;
+      if (playerY <= playerFinalY) {
+        playerY = playerFinalY;
+        draw();
+        if (overshoot > 0) { animPhase = 2; requestAnimationFrame(animStep); }
+        else showResult();
+        return;
+      }
+    } else {
+      targetY -= SPEED;
+      if (targetY <= targetFinalY) {
+        targetY = targetFinalY;
+        draw(); showResult(); return;
+      }
+    }
+    draw();
+    requestAnimationFrame(animStep);
+  }
+
+  // ── 判定 ──
+  function showResult() {
+    state = 'result';
+    const d   = Math.abs(overshoot);
+    const pct = Math.round(d / PERF_TRAVEL * 100);
+
+    let emoji, key, msg;
+    if (d <= EXACT_THRESH) {
+      emoji = '⭕'; key = 'exact';
+      msg   = d === 0 ? '完璧！<br>ジャストヒット' : `完璧！<br>誤差 ${pct}%`;
+    } else if (d <= CLOSE_THRESH) {
+      emoji = '<span class="delta">▲</span>'; key = 'close';
+      msg   = overshoot > 0 ? `惜しい！<br>押しすぎ ${pct}%` : `惜しい！<br>届かず ${pct}%`;
+    } else {
+      emoji = '❌'; key = 'miss';
+      msg   = overshoot > 0 ? `残念…<br>押しすぎ ${pct}%` : `残念…<br>届かず ${pct}%`;
+    }
+
+    score[key]++;
+    sExact.textContent = score.exact;
+    sClose.textContent = score.close;
+    sMiss.textContent  = score.miss;
+
+    resultDiv.innerHTML = emoji;
+    resultDiv.style.animation = 'none';
+    void resultDiv.offsetWidth;
+    resultDiv.style.animation = '';
+    detailDiv.innerHTML = msg;
+    nextBtn.style.display = 'block';
+    draw();
+  }
+
+  // ── 次のラウンド ──
+  function newRound() {
+    state    = 'ready';
+    pullDist = 0;
+    playerY  = PLAYER_Y0;
+    targetY  = TARGET_Y0;
+    overshoot = 0;
+    resultDiv.innerHTML    = '';
+    detailDiv.innerHTML    = '';
+    nextBtn.style.display  = 'none';
+    statusDiv.innerHTML    = '石を下に引いて離す<br>ちょうど触れる強さを当てろ！';
+    draw();
+  }
+
+  nextBtn.addEventListener('click', newRound);
+
+  document.addEventListener('keydown', e => {
+    if (e.code === 'Space' && !e.repeat) {
+      e.preventDefault();
+      if (state === 'result') newRound();
+    }
+  });
+
+  // ── 初期描画 ──
+  draw();
+</script>
+</body>
+</html>

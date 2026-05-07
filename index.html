@@ -112,6 +112,8 @@
     .game-card:nth-child(2) { animation-delay: 0.25s; }
     .game-card:nth-child(3) { animation-delay: 0.35s; }
     .game-card:nth-child(4) { animation-delay: 0.45s; }
+    .game-card:nth-child(5) { animation-delay: 0.55s; }
+    .game-card:nth-child(6) { animation-delay: 0.65s; }
 
     @keyframes cardIn {
       from { opacity: 0; transform: translateY(20px) scale(0.95); }
@@ -125,6 +127,7 @@
     .card-angle:hover  { border-color: rgba(0,200,140,0.5);   box-shadow: 0 12px 40px rgba(0,200,140,0.3); }
     .card-timing:hover { border-color: rgba(220,155,45,0.5);  box-shadow: 0 12px 40px rgba(200,130,20,0.3); }
     .card-color:hover  { border-color: rgba(255,100,180,0.5); box-shadow: 0 12px 40px rgba(255,80,160,0.3); }
+    .card-hit:hover    { border-color: rgba(60,180,255,0.5);  box-shadow: 0 12px 40px rgba(40,160,240,0.3); }
 
     .card-soon {
       opacity: 0.25;
@@ -157,6 +160,7 @@
     .card-timing .card-name { color: #e0aa40; }
     .card-angle  .card-name { color: #50e8b0; }
     .card-color  .card-name { color: #ff80c0; }
+    .card-hit    .card-name { color: #60c8ff; }
     .card-soon   .card-name { color: #445; }
 
     .card-desc {
@@ -220,13 +224,29 @@
       <div class="card-desc">1回転のタイミングを<br>ピタッと合わせろ</div>
     </a>
 
-    <!-- JUST COLOR -->
+    <!-- EXACT COLOR -->
     <a href="exact-color.html" class="game-card card-color">
       <canvas class="icon" id="iconColor" width="72" height="72"></canvas>
       <div class="card-eyebrow">EXACT</div>
       <div class="card-name">COLOR</div>
       <div class="card-desc">図形の色を<br>ピタッと合わせろ</div>
     </a>
+
+    <!-- EXACT HIT -->
+    <a href="exact-hit.html" class="game-card card-hit">
+      <canvas class="icon" id="iconHit" width="72" height="72"></canvas>
+      <div class="card-eyebrow">EXACT</div>
+      <div class="card-name">HIT</div>
+      <div class="card-desc">石を転がして<br>ピタッと当てろ</div>
+    </a>
+
+    <!-- Coming Soon -->
+    <div class="game-card card-soon">
+      <div style="font-size:2.2rem;margin-bottom:14px;opacity:0.4">？</div>
+      <div class="card-eyebrow">EXACT</div>
+      <div class="card-name">???</div>
+      <div class="card-desc">coming soon</div>
+    </div>
 
   </div>
 
@@ -441,6 +461,49 @@
     ctx.arc(cx, cy, r + 4, 0, Math.PI * 2);
     ctx.strokeStyle = 'rgba(255,120,190,0.35)';
     ctx.lineWidth = 1.5;
+    ctx.stroke();
+  })();
+
+  // ──────────────────────────────────────────────
+  //  HIT カードアイコン（2つの石、矢印）
+  // ──────────────────────────────────────────────
+  (function() {
+    const c   = document.getElementById('iconHit');
+    const ctx = c.getContext('2d');
+    const cx = 36;
+
+    function stone(x, y, r, fill, stroke) {
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fillStyle = fill;
+      ctx.fill();
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(x, y, r * 0.55, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    // ターゲット石（上）
+    stone(cx, 18, 12, '#d0eaff', '#5090c0');
+    // プレイヤー石（下）
+    stone(cx, 52, 12, '#ff9040', '#c05010');
+
+    // 矢印（下石から上石へ）
+    ctx.strokeStyle = 'rgba(255,160,60,0.75)';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(cx, 44);
+    ctx.lineTo(cx, 32);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx - 5, 36);
+    ctx.lineTo(cx, 31);
+    ctx.lineTo(cx + 5, 36);
     ctx.stroke();
   })();
 </script>
